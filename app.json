@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "FeedTec",
+    "slug": "feedtec",
+    "scheme": "feedtec",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#101214",
+    "android": {
+      "package": "com.trevotec.feedtec",
+      "googleServicesFile": "./google-services.json",
+      "allowBackup": false,
+      "predictiveBackGestureEnabled": false,
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
+    },
+    "web": {
+      "output": "single",
+      "name": "FeedTec",
+      "shortName": "FeedTec",
+      "themeColor": "#101214",
+      "backgroundColor": "#101214"
+    },
+    "plugins": [
+      "./plugins/local-properties",
+      "./plugins/android-studio",
+      "expo-router",
+      "@react-native-google-signin/google-signin",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#101827"
+        }
+      ],
+      "expo-status-bar",
+      "expo-audio",
+      "expo-notifications"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
