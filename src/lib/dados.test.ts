@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { adicionarFeedback, adicionarTecnico, definirChaveGemini, editarTecnico, feedbacksPorDia, lerDadosJson, maisNova, maisRecente, removerFeedback, removerTecnico, tecnicosOrdenados } from './dados';
-import { conversaComoTexto, lerTranscricao, marcarVozes, montarPedido } from './prompt';
+import { conversaComoTexto, inverterFalas, lerTranscricao, montarPedido } from './prompt';
 import { DADOS_VAZIOS } from '../types';
 
 test('adiciona, edita, ordena e remove técnicos', () => {
@@ -93,13 +93,13 @@ test('pedido ao Gemini leva tom, nome e anotações', () => {
 });
 
 test('transcrição: aceita JSON do Gemini e descarta lixo', () => {
-  assert.deepEqual(lerTranscricao('```json\n[{"voz":"A","texto":" Oi "},{"voz":"C","texto":"x"},{"voz":"B","texto":""},{"voz":"B","texto":"Bom dia"}]\n```'),
-    [{ voz: 'A', texto: 'Oi' }, { voz: 'B', texto: 'Bom dia' }]);
+  assert.deepEqual(lerTranscricao('```json\n[{"quem":"eu","texto":" Oi "},{"quem":"A","texto":"x"},{"quem":"tecnico","texto":""},{"quem":"tecnico","texto":"Bom dia"}]\n```'),
+    [{ quem: 'eu', texto: 'Oi' }, { quem: 'tecnico', texto: 'Bom dia' }]);
   assert.deepEqual(lerTranscricao('não é json'), []);
 });
 
-test('marca vozes e vira anotações', () => {
-  const falas = marcarVozes([{ voz: 'A', texto: 'Oi' }, { voz: 'B', texto: 'Bom dia' }], 'B');
+test('inverte quem fala e vira anotações', () => {
+  const falas = inverterFalas([{ quem: 'eu', texto: 'Oi' }, { quem: 'tecnico', texto: 'Bom dia' }]);
   assert.deepEqual(falas.map(f => f.quem), ['tecnico', 'eu']);
   assert.equal(conversaComoTexto(falas), 'Técnico: Oi\nEu: Bom dia');
 });

@@ -7,7 +7,7 @@ import { SeletorTom } from '../../components/Tom';
 import { Gravador } from '../../components/Gravador';
 import { useEstado } from '../../Estado';
 import { adicionarFeedback } from '../../lib/dados';
-import { conversaComoTexto, montarPedido } from '../../lib/prompt';
+import { conversaComoTexto, inverterFalas, montarPedido } from '../../lib/prompt';
 import { gerarTexto } from '../../services/gemini';
 import { salvarAudioNoDrive } from '../../services/drive';
 import { tokenDrive } from '../../services/googleSignIn';
@@ -47,7 +47,7 @@ export default function NovoFeedback() {
     let audioId: string | undefined;
     try {
       const token = audio && (await tokenDrive());
-      if (audio && token) audioId = await salvarAudioNoDrive(token, audio, `conversa-${tecnico!.nome}-${new Date().toISOString().slice(0, 16)}.${audio.type.match(/ogg|webm|mp4/)?.[0] ?? 'aac'}`);
+      if (audio && token) audioId = await salvarAudioNoDrive(token, audio, `conversa-${tecnico!.nome}-${new Date().toISOString().slice(0, 16)}.${audio.type.match(/ogg|webm|mp4|wav|flac|mp3|mpeg/)?.[0].replace('mpeg', 'mp3') ?? 'aac'}`);
     } catch { /* segue sem o áudio */ }
     try { alterar(d => adicionarFeedback(d, tecnico!.id, tom, bruto, texto, Date.now(), { conversa, audioId })); router.back(); }
     catch (e) { setErro(mensagem(e)); }
@@ -58,7 +58,15 @@ export default function NovoFeedback() {
     <Tela titulo={`Feedback · ${tecnico.nome}`} voltar>
       <ScrollView contentContainerStyle={{ padding: space(4), gap: space(4), paddingBottom: space(10) }} keyboardShouldPersistTaps="handled">
         <SeletorTom valor={tom} onMudar={setTom} />
-        <Gravador chave={dados.chaveGemini} onPronto={(falas, a) => { setConversa(falas); setAudio(a); setBruto(conversaComoTexto(falas)); }} />
+        <Gravador chave={dados.chaveGemini} tecnico={tecnico.nome} onPronto={(falas, a) => { setConversa(falas); setAudio(a); setBruto(conversaComoTexto(falas)); }} />
+        {conversa ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
+            <Text style={[type.caption, { flex: 1 }]}>Trocou quem falou o quê?</Text>
+            <Botao titulo="Inverter Eu / Técnico" secundario onPress={() => {
+              const inv = inverterFalas(conversa); setConversa(inv); setBruto(conversaComoTexto(inv));
+            }} />
+          </View>
+        ) : null}
         <Campo rotulo={conversa ? 'Conversa transcrita (pode ajustar)' : 'O que aconteceu'} value={bruto} onChangeText={setBruto} multiline
           placeholder="Escreva do seu jeito: fatos, OS, o que foi bem ou mal…" />
         <Marca texto="Adicionar contexto ou ressalvas" marcado={comContexto} onPress={() => setComContexto(v => !v)} />

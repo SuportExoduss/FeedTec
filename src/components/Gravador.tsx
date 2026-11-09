@@ -1,11 +1,11 @@
-// Grava a conversa do feedback, transcreve no Gemini e pergunta qual voz é a do gestor.
+// Grava a conversa do feedback (ou recebe o arquivo de outro app de gravação) e transcreve no Gemini já separando gestor e técnico.
 import { useState } from 'react';
 import { Platform, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as DocumentPicker from 'expo-document-picker';
 import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, useAudioRecorder, useAudioRecorderState } from 'expo-audio';
 import { Botao, Erro, confirmar, mensagem } from './ui';
-import { marcarVozes, type Trecho } from '../lib/prompt';
-import { transcrever } from '../services/gemini';
+import { transcrever, type Progresso } from '../services/gemini';
 import { colors, radius, space, type } from '../theme';
 import type { Fala } from '../types';
 
@@ -26,21 +26,17 @@ const relogio = (ms: number) => {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 };
 
-function base64(blob: Blob): Promise<string> {
-  return new Promise((ok, falha) => {
-    const r = new FileReader();
-    r.onload = () => ok(String(r.result).split(',')[1] ?? '');
-    r.onerror = () => falha(new Error('Não deu para ler a gravação.'));
-    r.readAsDataURL(blob);
-  });
-}
+// Extensão → tipo que o Gemini aceita (apps de gravação costumam mandar m4a, que é áudio mp4).
+const MIME_EXT: Record<string, string> = {
+  m4a: 'audio/mp4', mp4: 'audio/mp4', aac: 'audio/aac', mp3: 'audio/mp3', ogg: 'audio/ogg', opus: 'audio/ogg',
+  oga: 'audio/ogg', wav: 'audio/wav', flac: 'audio/flac', webm: 'audio/webm', aiff: 'audio/aiff',
+};
 
-export function Gravador({ chave, onPronto }: { chave?: string; onPronto: (falas: Fala[], audio: Blob) => void }) {
+export function Gravador({ chave, tecnico, onPronto }: { chave?: string; tecnico: string; onPronto: (falas: Fala[], audio: Blob) => void }) {
   const rec = useAudioRecorder(OPCOES);
   const st = useAudioRecorderState(rec, 500);
-  const [fase, setFase] = useState<'parado' | 'gravando' | 'transcrevendo' | 'vozes'>('parado');
-  const [trechos, setTrechos] = useState<Trecho[]>([]);
-  const [audio, setAudio] = useState<Blob | null>(null);
+  const [fase, setFase] = useState<'parado' | 'gravando' | 'transcrevendo'>('parado');
+  const [progresso, setProgresso] = useState<Progresso>({ fase: 'enviando' });
   const [erro, setErro] = useState<string | null>(null);
 
   async function iniciar() {
@@ -55,33 +51,64 @@ export function Gravador({ chave, onPronto }: { chave?: string; onPronto: (falas
     } catch (e) { setErro(mensagem(e)); }
   }
 
+  async function transcreverAudio(audio: Blob, mime: string) {
+    setFase('transcrevendo');
+    setProgresso({ fase: 'enviando' });
+    try {
+      onPronto(await transcrever(chave!, audio, mime, tecnico, setProgresso), audio);
+    } catch (e) { setErro(mensagem(e)); }
+    setFase('parado');
+  }
+
   async function parar() {
     setFase('transcrevendo');
     try {
       await rec.stop();
       if (!rec.uri) throw new Error('A gravação não foi salva. Tente de novo.');
       const blob = await (await fetch(rec.uri)).blob();
-      const mime = (blob.type || (Platform.OS === 'web' ? MIME_WEB : 'audio/aac')).split(';')[0];
-      setTrechos(await transcrever(chave!, await base64(blob), mime));
-      setAudio(blob);
-      setFase('vozes');
+      await transcreverAudio(blob, (blob.type || (Platform.OS === 'web' ? MIME_WEB : 'audio/aac')).split(';')[0]);
     } catch (e) { setErro(mensagem(e)); setFase('parado'); }
   }
 
-  function escolher(minha: 'A' | 'B') {
-    onPronto(marcarVozes(trechos, minha), audio!);
-    setFase('parado');
+  /** Arquivo já gravado em outro app (gravador do celular, WhatsApp…). */
+  async function enviar() {
+    setErro(null);
+    try {
+      const r = await DocumentPicker.getDocumentAsync({ type: 'audio/*', copyToCacheDirectory: true });
+      const a = r.canceled ? undefined : r.assets[0];
+      if (!a) return;
+      const ext = a.name.split('.').pop()?.toLowerCase() ?? '';
+      const mime = MIME_EXT[ext] ?? a.mimeType?.split(';')[0];
+      if (!mime?.startsWith('audio/')) throw new Error('Formato não aceito. Use m4a, mp3, aac, ogg, wav ou flac.');
+      const blob = a.file ?? await (await fetch(a.uri)).blob();
+      await transcreverAudio(blob, mime);
+    } catch (e) { setErro(mensagem(e)); setFase('parado'); }
   }
 
   if (fase === 'parado') return (
     <View style={{ gap: space(2) }}>
-      <Botao titulo="Gravar conversa" secundario disabled={!chave} onPress={iniciar}
-        icone={<Ionicons name="mic" size={20} color={colors.text} />} />
+      <View style={{ flexDirection: 'row', gap: space(2) }}>
+        <View style={{ flex: 1 }}>
+          <Botao titulo="Gravar" secundario disabled={!chave} onPress={iniciar}
+            icone={<Ionicons name="mic" size={20} color={colors.text} />} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Botao titulo="Arquivo" secundario disabled={!chave} onPress={enviar}
+            icone={<Ionicons name="cloud-upload-outline" size={20} color={colors.text} />} />
+        </View>
+      </View>
       <Erro texto={erro} />
     </View>
   );
 
-  if (fase === 'transcrevendo') return <Botao titulo="Transcrevendo a conversa…" carregando onPress={() => {}} />;
+  if (fase === 'transcrevendo') return (
+    <View accessibilityLiveRegion="polite" style={{ gap: space(2) }}>
+      <Botao titulo={progresso.fase === 'enviando' ? 'Enviando o áudio…' : 'Transcrevendo a conversa…'} carregando onPress={() => {}} />
+      <Text style={[type.caption, { textAlign: 'center' }]}>
+        {progresso.fase === 'transcrevendo' && progresso.falas ? `${progresso.falas} falas transcritas até agora` : 'Conversas longas levam alguns minutos.'}
+      </Text>
+    </View>
+  );
 
   if (fase === 'gravando') return (
     <View style={{ gap: space(3), padding: space(4), borderRadius: radius.card, backgroundColor: colors.surface, alignItems: 'center' }}>
@@ -94,21 +121,6 @@ export function Gravador({ chave, onPronto }: { chave?: string; onPronto: (falas
         </View>
         <View style={{ flex: 1 }}><Botao titulo="Parar" onPress={parar} /></View>
       </View>
-    </View>
-  );
-
-  // Uma frase de cada voz para o gestor dizer qual é a dele.
-  const vozes = (['A', 'B'] as const).filter(v => trechos.some(t => t.voz === v));
-  return (
-    <View style={{ gap: space(3) }}>
-      <Text style={type.body}>Qual destas é a sua voz?</Text>
-      {vozes.map(v => (
-        <View key={v} style={{ gap: space(2), padding: space(3), borderRadius: radius.card, backgroundColor: colors.surface }}>
-          <Text style={type.caption} numberOfLines={3}>“{trechos.find(t => t.voz === v)!.texto}”</Text>
-          <Botao titulo="Sou eu" secundario onPress={() => escolher(v)} />
-        </View>
-      ))}
-      {vozes.length === 1 ? <Botao titulo="Nenhuma, é só o técnico" secundario onPress={() => escolher(vozes[0] === 'A' ? 'B' : 'A')} /> : null}
     </View>
   );
 }

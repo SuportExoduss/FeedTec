@@ -35,29 +35,28 @@ ${a}
 """`;
 }
 
-/** Trecho da transcrição antes de o gestor dizer quem é quem. */
-export interface Trecho { voz: 'A' | 'B'; texto: string }
-
-export const TRANSCRICAO = `Transcreva em português do Brasil esta conversa de feedback entre duas pessoas: um supervisor e um técnico.
-Separe por quem fala: a primeira voz que aparece é "A", a outra é "B". Junte frases seguidas da mesma voz num só item.
+/** Pede a conversa já separada entre o gestor ("eu") e o técnico, para não perguntar quem é quem. */
+export const transcricao = (tecnico: string) => `Transcreva em português do Brasil esta conversa de feedback entre um supervisor e o técnico ${tecnico}.
+Em cada trecho diga quem fala: "eu" é o supervisor (quem conduz a conversa, avalia, cobra, elogia e combina metas) e "tecnico" é ${tecnico}. Se não der para distinguir pela voz, decida pelo conteúdo.
+Junte frases seguidas da mesma pessoa num só item.
 Transcreva fielmente, só corrigindo a pontuação; não resuma, não invente e ignore ruídos.
-Responda só com JSON: [{"voz":"A","texto":"..."},{"voz":"B","texto":"..."}]`;
+Responda só com JSON: [{"quem":"eu","texto":"..."},{"quem":"tecnico","texto":"..."}]`;
 
 /** Lê o JSON da transcrição sem confiar nele: descarta itens estranhos. */
-export function lerTranscricao(json: string): Trecho[] {
+export function lerTranscricao(json: string): Fala[] {
   try {
     const a = JSON.parse(json.replace(/^```(json)?|```$/g, '').trim());
     return (Array.isArray(a) ? a : [])
-      .filter(t => (t?.voz === 'A' || t?.voz === 'B') && typeof t.texto === 'string' && t.texto.trim())
-      .map(t => ({ voz: t.voz, texto: t.texto.trim() }));
+      .filter(t => (t?.quem === 'eu' || t?.quem === 'tecnico') && typeof t.texto === 'string' && t.texto.trim())
+      .map(t => ({ quem: t.quem, texto: t.texto.trim() }));
   } catch {
     return [];
   }
 }
 
-/** O gestor diz qual voz é a dele; a outra é o técnico. */
-export const marcarVozes = (trechos: Trecho[], minha: 'A' | 'B'): Fala[] =>
-  trechos.map(t => ({ quem: t.voz === minha ? 'eu' : 'tecnico', texto: t.texto }));
+/** Para quando o Gemini troca quem é quem. */
+export const inverterFalas = (falas: Fala[]): Fala[] =>
+  falas.map(f => ({ ...f, quem: f.quem === 'eu' ? 'tecnico' : 'eu' }));
 
 /** A conversa vira as "anotações" que seguem para o feedback. */
 export const conversaComoTexto = (falas: Fala[]) =>
