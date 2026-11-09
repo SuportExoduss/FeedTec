@@ -3,7 +3,7 @@
     "name": "FeedTec",
     "slug": "feedtec",
     "scheme": "feedtec",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "orientation": "default",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#101214",

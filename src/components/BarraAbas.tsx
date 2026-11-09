@@ -4,6 +4,7 @@ import { router, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, fonte } from '../theme';
+import { COLUNA } from './ui';
 
 const ABAS = [
   { rota: '', titulo: 'Início', icone: 'home' },
@@ -18,8 +19,8 @@ export function BarraAbas() {
   const { bottom } = useSafeAreaInsets();
   if (!ABAS.some(a => a.rota === rota)) return null;
   return (
-    <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: colors.surface, borderTopWidth: 1,
-      borderColor: colors.border, paddingBottom: bottom, paddingTop: 6 }}>
+    <View style={{ backgroundColor: colors.surface, borderTopWidth: 1, borderColor: colors.border, paddingBottom: bottom, paddingTop: 6 }}>
+    <View accessibilityRole="tablist" style={{ flexDirection: 'row', ...COLUNA }}>
       {ABAS.map(a => {
         const sel = a.rota === rota;
         const cor = sel ? colors.amarelo : colors.textMuted;
@@ -32,6 +33,7 @@ export function BarraAbas() {
           </Pressable>
         );
       })}
+    </View>
     </View>
   );
 }

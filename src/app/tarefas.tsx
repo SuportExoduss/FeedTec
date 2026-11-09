@@ -14,7 +14,7 @@ import type { Prioridade, Tarefa } from '../types';
 
 const SITUACOES: { valor: Situacao; titulo: string; um: string }[] = [
   { valor: 'pendente', titulo: 'Pendentes', um: 'Pendente' },
-  { valor: 'andamento', titulo: 'Em andamento', um: 'Em andamento' },
+  { valor: 'andamento', titulo: 'Andamento', um: 'Andamento' },
   { valor: 'concluida', titulo: 'Concluídas', um: 'Concluída' },
 ];
 const PRIO: Record<Prioridade, { titulo: string; cor: () => string }> = {

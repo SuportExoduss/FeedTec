@@ -97,6 +97,7 @@
   2. Android Studio: Sync + build do APK debug (mesmo computador = mesma chave, instala por cima).
   3. Drive › clique direito no `app-debug.apk` › Gerenciar versões › Enviar nova versão.
   4. Atualizar `versao` em `public/versao.json` e `npm run deploy`.
+- 08/11: versão subida para 0.1.1 (versionCode 2) à mão no app.json e build.gradle, para testar o aviso no APK 0.1.0.
 
 ## F10 — Ícone novo, splash com o nome e abertura que pula com toque — 07/11/2026
 - [x] Ícone: arte do dono `D:\downloads\feedtec icone.png` (1254 px). `mipmap-*/ic_launcher_foreground.png` (arte nos 70 dp do centro) sobre `ic_launcher_background` #0034FA (mesmo azul da borda da arte); `ic_launcher(_round).webp` legados e `public/favicon.png` / `apple-touch-icon.png` regerados

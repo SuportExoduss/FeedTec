@@ -8,6 +8,7 @@ import { AvisoAtualizacao } from '../components/AvisoAtualizacao';
 import { useEstado } from '../Estado';
 import { diaIso, DIAS_SEMANA, mostrarDia, proximaReuniao } from '../lib/agenda';
 import { colors, fonte, radius, space, temaEscuro } from '../theme';
+import { COLUNA } from '../components/ui';
 
 type Icone = keyof typeof Ionicons.glyphMap;
 type Compromisso = { id: string; titulo: string; dia: string; hora?: string; icone: Icone; cor: string; rota: Href };
@@ -59,7 +60,7 @@ export default function Inicio() {
         [420, 330, 240].map(t => <View key={t} pointerEvents="none" style={{ position: 'absolute', top: -t / 2, right: -t / 3,
           width: t, height: t, borderRadius: t / 2, backgroundColor: colors.accent, opacity: 0.14 }} />)
       ) : null}
-      <View style={{ flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: space(5) }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: space(5), ...COLUNA }}>
         <Text accessibilityRole="header" style={{ flex: 1, fontFamily: fonte.negrito, fontSize: 22, color: colors.text }}>
           Feed<Text style={{ color: colors.amarelo }}>Tec</Text>
         </Text>
@@ -70,7 +71,7 @@ export default function Inicio() {
             backgroundColor: colors.amarelo, borderWidth: 1.5, borderColor: colors.bg }} /> : null}
         </Pressable>
       </View>
-      <ScrollView contentContainerStyle={{ width: '100%', maxWidth: 720, alignSelf: 'center', paddingBottom: space(8) }}>
+      <ScrollView contentContainerStyle={{ ...COLUNA, paddingBottom: space(8) }}>
         <AvisoAtualizacao />
         <AvisoDrive />
         <View style={{ paddingHorizontal: space(5), paddingTop: space(4), gap: space(1) }}>

@@ -7,6 +7,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { colors, fonte, radius, space, type } from '../theme';
 
+/** Coluna central: em tablet e computador tudo fica na mesma largura e alinhado ao centro. */
+export const COLUNA = { width: '100%', maxWidth: 720, alignSelf: 'center' } as const;
+
 export interface ItemMenu { titulo: string; onPress: () => void; perigo?: boolean }
 
 /** Cabeçalho enxuto: voltar, título e ⋮ com as opções escondidas. */
@@ -16,13 +19,13 @@ export function Tela({ titulo, voltar, menu, children }: {
   const [aberto, setAberto] = useState(false);
   return (
     <SafeAreaView edges={voltar ? undefined : ['top', 'left', 'right']} style={{ flex: 1, backgroundColor: colors.bg }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: space(2), height: 56, gap: space(1) }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: space(2), height: 56, gap: space(1), ...COLUNA }}>
         {voltar ? <Icone nome="arrow-back" rotulo="Voltar" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
           : <View style={{ width: space(2) }} />}
         <Text accessibilityRole="header" numberOfLines={1} style={[type.title, { flex: 1, fontSize: 22 }]}>{titulo}</Text>
         {menu?.length ? <Icone nome="ellipsis-vertical" rotulo="Mais opções" onPress={() => setAberto(true)} /> : null}
       </View>
-      <View style={{ flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center' }}>{children}</View>
+      <View style={{ flex: 1, ...COLUNA }}>{children}</View>
       <Modal visible={aberto} transparent animationType="fade" onRequestClose={() => setAberto(false)}>
         <Pressable style={{ flex: 1 }} onPress={() => setAberto(false)} accessibilityLabel="Fechar menu">
           <SafeAreaView style={{ alignItems: 'flex-end', padding: space(2) }}>
@@ -95,17 +98,40 @@ export function Dialogo({ visivel, titulo, onFechar, children }: { visivel: bool
   );
 }
 
-/** Abas simples (chips) no topo de uma lista. */
+/** Abas: até 3 opções viram um seletor segmentado (uma linha, larguras iguais, fonte se ajusta à largura medida);
+ *  mais que isso, uma linha só de chips com rolagem lateral. Nunca quebram linha. */
 export function Abas<T extends string>({ opcoes, valor, onChange }: { opcoes: { valor: T; titulo: string }[]; valor: T; onChange: (v: T) => void }) {
+  const [largura, setLargura] = useState(0);
+  if (opcoes.length > 3) {
+    return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} accessibilityRole="tablist" contentContainerStyle={{ gap: space(2) }}>
+        {opcoes.map(o => {
+          const sel = o.valor === valor;
+          return (
+            <Pressable key={o.valor} accessibilityRole="tab" accessibilityState={{ selected: sel }} onPress={() => onChange(o.valor)}
+              style={{ height: 36, justifyContent: 'center', paddingHorizontal: space(4), borderRadius: 999, borderWidth: 1,
+                borderColor: sel ? colors.accent : colors.border, backgroundColor: sel ? colors.accent : 'transparent' }}>
+              <Text numberOfLines={1} style={{ fontSize: 14, fontFamily: fonte.semi, color: sel ? colors.accentText : colors.text }}>{o.titulo}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    );
+  }
+  // ponytail: largura de letra estimada (0,6 × fonte para Inter semibold); medir texto de verdade se algum rótulo cortar.
+  const maior = Math.max(...opcoes.map(o => o.titulo.length));
+  const util = largura / opcoes.length - space(3) * 2 - 8;
+  const fonteTam = largura ? Math.max(11, Math.min(14, util / (maior * 0.6))) : 14;
   return (
-    <View accessibilityRole="tablist" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(2) }}>
+    <View accessibilityRole="tablist" onLayout={e => setLargura(e.nativeEvent.layout.width)}
+      style={{ flexDirection: 'row', padding: 4, gap: 4, borderRadius: 999, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
       {opcoes.map(o => {
         const sel = o.valor === valor;
         return (
           <Pressable key={o.valor} accessibilityRole="tab" accessibilityState={{ selected: sel }} onPress={() => onChange(o.valor)}
-            style={{ paddingVertical: space(2), paddingHorizontal: space(4), borderRadius: 999, borderWidth: 1,
-              borderColor: sel ? colors.accent : colors.border, backgroundColor: sel ? colors.accent : 'transparent' }}>
-            <Text style={{ fontSize: 14, fontFamily: fonte.semi, color: sel ? colors.accentText : colors.text }}>{o.titulo}</Text>
+            style={{ flex: 1, height: 36, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(1), borderRadius: 999,
+              backgroundColor: sel ? colors.accent : 'transparent' }}>
+            <Text numberOfLines={1} style={{ fontSize: fonteTam, fontFamily: fonte.semi, color: sel ? colors.accentText : colors.textMuted }}>{o.titulo}</Text>
           </Pressable>
         );
       })}
