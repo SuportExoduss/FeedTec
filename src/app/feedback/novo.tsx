@@ -4,7 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { Botao, Campo, Erro, Marca, Tela, mensagem } from '../../components/ui';
 import { SeletorTom } from '../../components/Tom';
-import { Gravador } from '../../components/Gravador';
+import { Gravador, apagarGravacao } from '../../components/Gravador';
 import { useEstado } from '../../Estado';
 import { adicionarFeedback } from '../../lib/dados';
 import { conversaComoTexto, inverterFalas, montarPedido } from '../../lib/prompt';
@@ -26,6 +26,7 @@ export default function NovoFeedback() {
   const [salvando, setSalvando] = useState(false);
   const [conversa, setConversa] = useState<Fala[] | undefined>();
   const [audio, setAudio] = useState<Blob | null>(null);
+  const [arquivo, setArquivo] = useState<string | undefined>();
   const [erro, setErro] = useState<string | null>(null);
   const tecnico = dados.tecnicos.find(t => t.id === tecnicoId);
   if (!tecnico) return <Redirect href="/" />;
@@ -48,7 +49,9 @@ export default function NovoFeedback() {
     try {
       const token = audio && (await tokenDrive());
       if (audio && token) audioId = await salvarAudioNoDrive(token, audio, `conversa-${tecnico!.nome}-${new Date().toISOString().slice(0, 16)}.${audio.type.match(/ogg|webm|mp4|wav|flac|mp3|mpeg/)?.[0].replace('mpeg', 'mp3') ?? 'aac'}`);
-    } catch { /* segue sem o áudio */ }
+    } catch { /* segue sem o áudio; a cópia no aparelho fica */ }
+    // Já está no Drive: a cópia guardada no aparelho não precisa mais ficar.
+    if (audioId && arquivo) apagarGravacao(arquivo);
     try { alterar(d => adicionarFeedback(d, tecnico!.id, tom, bruto, texto, Date.now(), { conversa, audioId })); router.back(); }
     catch (e) { setErro(mensagem(e)); }
     finally { setSalvando(false); }
@@ -58,7 +61,7 @@ export default function NovoFeedback() {
     <Tela titulo={`Feedback · ${tecnico.nome}`} voltar>
       <ScrollView contentContainerStyle={{ padding: space(4), gap: space(4), paddingBottom: space(10) }} keyboardShouldPersistTaps="handled">
         <SeletorTom valor={tom} onMudar={setTom} />
-        <Gravador chave={dados.chaveGemini} tecnico={tecnico.nome} onPronto={(falas, a) => { setConversa(falas); setAudio(a); setBruto(conversaComoTexto(falas)); }} />
+        <Gravador chave={dados.chaveGemini} tecnico={tecnico.nome} onPronto={(falas, a, arq) => { setConversa(falas); setAudio(a); setArquivo(arq); setBruto(conversaComoTexto(falas)); }} />
         {conversa ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
             <Text style={[type.caption, { flex: 1 }]}>Trocou quem falou o quê?</Text>

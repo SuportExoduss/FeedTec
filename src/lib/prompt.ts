@@ -36,22 +36,45 @@ ${a}
 }
 
 /** Pede a conversa já separada entre o gestor ("eu") e o técnico, para não perguntar quem é quem. */
-export const transcricao = (tecnico: string) => `Transcreva em português do Brasil esta conversa de feedback entre um supervisor e o técnico ${tecnico}.
-Em cada trecho diga quem fala: "eu" é o supervisor (quem conduz a conversa, avalia, cobra, elogia e combina metas) e "tecnico" é ${tecnico}. Se não der para distinguir pela voz, decida pelo conteúdo.
-Junte frases seguidas da mesma pessoa num só item.
-Transcreva fielmente, só corrigindo a pontuação; não resuma, não invente e ignore ruídos.
-Responda só com JSON: [{"quem":"eu","texto":"..."},{"quem":"tecnico","texto":"..."}]`;
+export const transcricao = (tecnico: string) => `Você é um transcritor profissional. Ouça a gravação inteira antes de responder.
+É uma conversa de feedback em português do Brasil entre um supervisor e o técnico ${tecnico}, gravada no celular (pode ter ruído, sotaque, gírias e falas sobrepostas).
+1. Separe as vozes pelo timbre, como uma pessoa faria; a mesma voz é sempre a mesma pessoa do começo ao fim.
+2. Decida qual voz é o supervisor ("eu"): quem conduz, avalia, cobra, elogia e combina metas. A outra é o técnico ("tecnico"). Use também o conteúdo quando as vozes forem parecidas.
+3. Transcreva tudo fielmente, do início ao fim, só corrigindo a pontuação. Não resuma, não pule trechos, não invente; ignore ruídos. Trecho inaudível vira [inaudível].
+4. Junte frases seguidas da mesma pessoa num só item.`;
 
-/** Lê o JSON da transcrição sem confiar nele: descarta itens estranhos. */
+/** Formato obrigatório da resposta: o Gemini não consegue fugir de "eu"/"tecnico". */
+export const FORMATO_TRANSCRICAO = {
+  type: 'ARRAY',
+  items: {
+    type: 'OBJECT',
+    properties: { quem: { type: 'STRING', enum: ['eu', 'tecnico'] }, texto: { type: 'STRING' } },
+    required: ['quem', 'texto'],
+  },
+};
+
+const quemDe = (v: unknown): Fala['quem'] | null => {
+  const q = String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+  return /^(eu|supervisor|gestor)\b/.test(q) ? 'eu' : /^tecnico\b/.test(q) ? 'tecnico' : null;
+};
+
+/**
+ * Lê a transcrição sem confiar nela: aceita acento/maiúscula, lista dentro de objeto e
+ * JSON cortado no meio (aproveita as falas completas até onde chegou).
+ */
 export function lerTranscricao(json: string): Fala[] {
-  try {
-    const a = JSON.parse(json.replace(/^```(json)?|```$/g, '').trim());
-    return (Array.isArray(a) ? a : [])
-      .filter(t => (t?.quem === 'eu' || t?.quem === 'tecnico') && typeof t.texto === 'string' && t.texto.trim())
-      .map(t => ({ quem: t.quem, texto: t.texto.trim() }));
-  } catch {
-    return [];
+  const s = json.replace(/^\s*```(json)?|```\s*$/g, '').trim();
+  let dado: unknown;
+  try { dado = JSON.parse(s); } catch {
+    const fim = s.lastIndexOf('}');
+    try { dado = JSON.parse(s.slice(s.indexOf('['), fim + 1) + ']'); } catch { return []; }
   }
+  const lista = Array.isArray(dado) ? dado
+    : Object.values((dado ?? {}) as object).find(Array.isArray) ?? [];
+  return (lista as { quem?: unknown; texto?: unknown }[]).flatMap(t => {
+    const quem = quemDe(t?.quem), texto = typeof t?.texto === 'string' ? t.texto.trim() : '';
+    return quem && texto ? [{ quem, texto }] : [];
+  });
 }
 
 /** Para quando o Gemini troca quem é quem. */

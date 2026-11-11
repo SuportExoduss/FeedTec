@@ -98,6 +98,14 @@ test('transcrição: aceita JSON do Gemini e descarta lixo', () => {
   assert.deepEqual(lerTranscricao('não é json'), []);
 });
 
+test('transcrição: acento, objeto em volta e JSON cortado', () => {
+  assert.deepEqual(lerTranscricao('[{"quem":"Técnico","texto":"Oi"},{"quem":"Eu (supervisor)","texto":"Fala"}]'),
+    [{ quem: 'tecnico', texto: 'Oi' }, { quem: 'eu', texto: 'Fala' }]);
+  assert.deepEqual(lerTranscricao('{"falas":[{"quem":"eu","texto":"Oi"}]}'), [{ quem: 'eu', texto: 'Oi' }]);
+  assert.deepEqual(lerTranscricao('[{"quem":"eu","texto":"Oi"},{"quem":"tecnico","texto":"Bom d'),
+    [{ quem: 'eu', texto: 'Oi' }]);
+});
+
 test('inverte quem fala e vira anotações', () => {
   const falas = inverterFalas([{ quem: 'eu', texto: 'Oi' }, { quem: 'tecnico', texto: 'Bom dia' }]);
   assert.deepEqual(falas.map(f => f.quem), ['tecnico', 'eu']);

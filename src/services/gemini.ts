@@ -1,12 +1,12 @@
 // Gemini direto do app com a chave do próprio gestor (AI Studio). Decisão do dono: sem servidor.
 import { fetch as buscarStream } from 'expo/fetch';
-import { INSTRUCAO, lerTranscricao, transcricao } from '../lib/prompt';
+import { FORMATO_TRANSCRICAO, INSTRUCAO, lerTranscricao, transcricao } from '../lib/prompt';
 import type { Fala } from '../types';
 
 const BASE = 'https://generativelanguage.googleapis.com';
 // ponytail: aliases que o Google atualiza sozinho; fixar versões se a saída mudar demais.
-// O lite só entra quando o principal está sobrecarregado (503/500) ou parou de responder.
-const MODELOS = ['gemini-flash-latest', 'gemini-flash-lite-latest'];
+// O Flash vive sobrecarregado (503) por segundos: tenta de novo antes de cair no lite, que erra mais palavras.
+const MODELOS = ['gemini-flash-latest', 'gemini-flash-latest', 'gemini-flash-lite-latest'];
 // Até aqui vai junto no pedido (base64); acima sobe antes pela Files API (gravações longas de outros apps).
 const LIMITE_INLINE = 15_000_000;
 
@@ -34,12 +34,15 @@ export async function transcrever(chave: string, audio: Blob, mimeType: string, 
     contents: [{ role: 'user', parts: [parte] }],
     generationConfig: {
       responseMimeType: 'application/json',
-      // Transcrever não pede raciocínio: "low" corta a espera antes da primeira palavra ("minimal" não existe no 3.8 Flash).
+      responseSchema: FORMATO_TRANSCRICAO,
+      // Conversa de 1 h passa fácil de 8 mil tokens; sem isto o JSON vinha cortado e a transcrição "sumia".
+      maxOutputTokens: 65536,
+      // "low" ainda deixa separar as vozes com cuidado sem a espera longa do padrão ("minimal" não existe no 3.8 Flash).
       thinkingConfig: { thinkingLevel: 'low' },
     },
   }, 90_000, parcial => aoProgredir({ fase: 'transcrevendo', falas: parcial.split('"texto"').length - 1 }));
   const falas = lerTranscricao(texto);
-  if (!falas.length) throw new Error('Não deu para entender a gravação. Tente gravar mais perto do celular.');
+  if (!falas.length) throw new Error('O Gemini não devolveu nenhuma fala desta gravação.');
   return falas;
 }
 
@@ -99,8 +102,9 @@ const textoDe = (j: any): string =>
  * então conversa longa não estoura o prazo e o gestor vê o andamento.
  */
 async function chamar(chave: string, corpo: object, espera: number, aoParcial?: (texto: string) => void): Promise<string> {
-  let sobrecarga = false;
+  let sobrecarga = false, semRede = false;
   for (const modelo of MODELOS) {
+    if (sobrecarga) await new Promise(ok => setTimeout(ok, 3000));
     const ctl = new AbortController();
     let t = setTimeout(() => ctl.abort(), espera);
     const vivo = () => { clearTimeout(t); t = setTimeout(() => ctl.abort(), espera); };
@@ -114,6 +118,8 @@ async function chamar(chave: string, corpo: object, espera: number, aoParcial?: 
         signal: ctl.signal,
       });
       if (r.status === 503 || r.status === 500) { sobrecarga = true; continue; }
+      // Cota do Flash acabou: o lite tem cota própria.
+      if (r.status === 429 && modelo !== MODELOS[MODELOS.length - 1]) continue;
       if (!r.ok) throw erro(r.status);
       if (!aoParcial || !r.body) return textoDe(await r.json()).trim();
       const leitor = r.body.getReader();
@@ -133,7 +139,9 @@ async function chamar(chave: string, corpo: object, espera: number, aoParcial?: 
     } catch (e) {
       if ((e as Error).name === 'Gemini') throw e;
       // Sem resposta (rede ou prazo): tenta o próximo modelo.
+      if ((e as Error).name !== 'AbortError') semRede = true;
     } finally { clearTimeout(t); }
   }
-  throw new Error(sobrecarga ? 'O Gemini está sobrecarregado agora. Tente de novo em alguns minutos.' : 'O Gemini demorou demais. Tente de novo.');
+  throw new Error(sobrecarga ? 'O Gemini está sobrecarregado agora. Tente de novo em alguns minutos.'
+    : semRede ? 'Sem conexão com a internet.' : 'O Gemini demorou demais. Tente de novo.');
 }
