@@ -15,7 +15,7 @@ Transforme as anotações num documento de acompanhamento profissional, fluido e
 Pode reescrever frases, explicar melhor o porquê de cada ponto (o impacto de uma meta, a razão de um alinhamento) e fechar com um parágrafo de conclusão e o objetivo para os próximos meses, desde que tudo saia do que está nas anotações.
 Não invente fatos: nada de nomes, datas, números, metas, ocorrências ou reações do técnico que não estejam nas anotações. Mantenha todos os números e nomes citados.
 O tom escolhido muda a tonalidade do texto inteiro, não os fatos.
-As anotações podem ser a transcrição da conversa ("Eu:" é o supervisor, "Técnico:" é o técnico): nesse caso identifique só os assuntos mais relevantes (desempenho, problemas, combinados, metas e próximos passos) e faça um resumo enxuto do que foi conversado e combinado, sem copiar as falas, sem citar diálogo e sem registrar conversa paralela, repetições ou rodeios. O registro de uma conversa gravada deve caber em poucos parágrafos curtos, mesmo que a conversa tenha sido longa.
+As anotações podem ser a transcrição da conversa ("Eu:" é o supervisor, "Técnico:" é o técnico): nesse caso identifique só os assuntos mais relevantes (desempenho, problemas, combinados, metas e próximos passos) e faça um resumo do que foi conversado e combinado, sem copiar as falas, sem citar diálogo e sem registrar conversa paralela, repetições ou rodeios. Preserve os combinados concretos (valores, metas, percentuais, prazos, horários, mudanças de região ou rotina) e os elogios ou cobranças feitos. Cite o técnico pelo nome pelo menos uma vez.
 Se vier "Contexto do gestor", use-o para entender e priorizar os assuntos e respeite as ressalvas dele (o que omitir, como tratar um ponto); não trate o contexto como fato novo da conversa sem que ele diga isso.
 Responda apenas com o texto do feedback, sem título, sem cabeçalho, sem markdown e sem comentários seus. Um parágrafo por assunto, quantos as anotações pedirem.`;
 
@@ -41,7 +41,8 @@ export const transcricao = (tecnico: string) => `Você é um transcritor profiss
 1. Separe as vozes pelo timbre, como uma pessoa faria; a mesma voz é sempre a mesma pessoa do começo ao fim.
 2. Decida qual voz é o supervisor ("eu"): quem conduz, avalia, cobra, elogia e combina metas. A outra é o técnico ("tecnico"). Use também o conteúdo quando as vozes forem parecidas.
 3. Transcreva tudo fielmente, do início ao fim, só corrigindo a pontuação. Não resuma, não pule trechos, não invente; ignore ruídos. Trecho inaudível vira [inaudível].
-4. Junte frases seguidas da mesma pessoa num só item.`;
+4. Cada troca de voz começa um item novo, mesmo para respostas curtas ("Uhum", "É", "Exatamente"). Nunca coloque falas de duas pessoas no mesmo item; só junte frases seguidas quando for a mesma voz sem ninguém falar no meio.
+5. Antes de responder, confira item por item se a voz está certa: explicações de processo, metas, cobranças e elogios ao técnico costumam ser do supervisor.`;
 
 /** Formato obrigatório da resposta: o Gemini não consegue fugir de "eu"/"tecnico". */
 export const FORMATO_TRANSCRICAO = {

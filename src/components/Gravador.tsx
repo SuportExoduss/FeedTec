@@ -137,7 +137,7 @@ export function Gravador({ chave, tecnico, onPronto }: {
   async function enviar() {
     setErro(null);
     try {
-      const r = await DocumentPicker.getDocumentAsync({ type: 'audio/*', copyToCacheDirectory: true });
+      const r = await DocumentPicker.getDocumentAsync({ type: ['audio/*', 'video/mp4'] /* m4a renomeado para .mp4 vem como vídeo */, copyToCacheDirectory: true });
       const a = r.canceled ? undefined : r.assets[0];
       if (!a) return;
       const mime = MIME_EXT[extDe(a.name)] ?? a.mimeType?.split(';')[0];
