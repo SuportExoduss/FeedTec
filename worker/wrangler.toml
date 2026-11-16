@@ -1,0 +1,9 @@
+# Deploy: npx wrangler deploy --config worker/wrangler.toml
+# Segredo (uma vez): npx wrangler secret put GOOGLE_CLIENT_SECRET --config worker/wrangler.toml
+name = "feedtec-drive"
+main = "index.js"
+compatibility_date = "2026-11-01"
+
+[vars]
+# Público (já vai no site). O segredo NÃO fica aqui.
+CLIENT_ID = "240382553902-l2thptme4o9hlene19hr3gdh2rjc2u33.apps.googleusercontent.com"

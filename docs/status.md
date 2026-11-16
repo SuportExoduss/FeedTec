@@ -129,3 +129,38 @@
 - Reuniões: abas com contagem. Histórico: filtros Todos / A melhorar / Neutro / Positivo / Gravados.
 - Perfil em seções (Integração com IA, Configurações, Sobre, Sair). Tema Sistema/Claro/Escuro guardado só no aparelho (AsyncStorage `feedtec.tema`).
 - Conferido no navegador (escuro e claro). Sem mudança nativa. **Falta:** deploy (só com "sim") e teste no celular.
+
+## F12 — Ocorrências diárias, fotos, layout de PC e PWA — 12/11/2026 (APK 0.1.2)
+- [x] Ocorrências (Mais › Ocorrências): dia, título, descrição, observação opcional, fotos (câmera/galeria → Drive); filtros Dia/Semana (seg–dom)/Mês; totais do dia e do mês; cards que expandem
+- [x] Gemini classifica cada ocorrência num tipo (existente ou novo); aba Ponderação com pizza e contagem por tipo no mês e nos 3 anteriores (repetidas × isoladas)
+- [x] Exportar Word (.docx com fotos), Excel (CSV com link das fotos) e PDF (com fotos)
+- [x] Web: barra lateral no PC (≥ 1024 px) e coluna mais larga; instalável no iPhone (manifest + metas Apple; dica em Perfil › Configurações)
+- [x] Tema padrão escuro (Sistema/Claro/Escuro continua no Perfil); `userInterfaceStyle` agora `automatic`
+- [x] Versão 0.1.2 (versionCode 3) no app.json e build.gradle
+- [ ] **Mudança nativa:** módulos novos react-native-svg, expo-print, expo-image-picker, expo-image-manipulator; plugin expo-image-picker no app.json; `CAMERA` adicionada à mão no AndroidManifest
+- [ ] **Dono (Android Studio):** Sync + build do APK 0.1.2; testar câmera, galeria, exportações e o tema "Sistema"
+
+## F13 — Atualização do APK por dentro do app — 12/11/2026
+- O app Android lê a última release do repositório privado `SuportExoduss/FeedTec-apk` (só APKs, sem código). Se a tag (`v0.1.3` ou `0.1.3`) for maior que `version` do app.json, mostra a faixa; ao tocar, baixa o `.apk` da release com progresso e abre o instalador.
+- Token: fine-grained, só o repositório `FeedTec-apk`, permissão **Contents: Read**, validade máxima. Vai no `.env.local` como `EXPO_PUBLIC_GITHUB_APK_TOKEN` (entra no APK; vazando, só expõe o próprio APK). O código fica em `AvisoAtualizacao.native.tsx` para o token não ir para o site.
+- Nativo novo: permissão `REQUEST_INSTALL_PACKAGES` (app.json + AndroidManifest) e `expo-file-system` como dependência direta → Sync no Android Studio e APK novo. Na primeira vez o Android pede para liberar "instalar apps desconhecidos" para o FeedTec.
+- Só os APKs com esta mudança se atualizam sozinhos; quem está em 0.1.1/0.1.2 continua pelo link do Drive (`public/versao.json`).
+- **Para lançar versão nova**: subir `version` (app.json) e `versionName`/`versionCode` (build.gradle) → build com a mesma chave → GitHub › FeedTec-apk › Releases › nova release com tag `vX.Y.Z` e o `.apk` anexado.
+
+## F14 — Abrir no app (App Links) — 0.1.6 — 12/11/2026
+- **Mudança nativa:** `intent-filter` com `autoVerify` para `https://feedtec.web.app` no AndroidManifest (e `intentFilters` no app.json). Links do site tocados no Android abrem direto no app.
+- `public/.well-known/assetlinks.json` com o SHA-256 da chave que assina o APK (hoje a chave debug padrão do template). Trocou a chave → trocar a impressão digital. `firebase.json` deixou de ignorar `.well-known`.
+- Aviso do site no Android: botão "Abrir no app" (intent do Chrome; sem o app instalado cai no download do APK).
+- Versão 0.1.6 (versionCode 7). Releases vão para FeedTec-apk (atualização no app) e FeedTec público (download pelo site).
+
+## F15 — Enviar reunião a colega (Firestore) — 16/11/2026
+- Avião de papel no cartão da reunião → e-mail do Google do colega (ou um dos `recentes`, guardados no Drive do gestor).
+- Convite vai para `convites` no Firestore (`src/services/convites.ts`); o destinatário vê no topo de Reuniões, Aceitar copia para o Drive dele, Recusar/Aceitar apagam o convite.
+- Regras em `firestore.rules` (só remetente e destinatário com e-mail verificado leem/apagam; create validado; sem update). Deploy: `firebase deploy --only firestore:rules`.
+- Sem push (exigiria Cloud Functions): o convite aparece quando o colega abre Reuniões. Sem mudança nativa.
+
+## F16 — Web sempre conectado ao Drive (Cloudflare Worker) — 16/11/2026
+- Login web por pop-up que passa pelo Worker `feedtec-drive` (`worker/index.js`, https://feedtec-drive.navalha-worker.workers.dev): ele troca o código do Google (com o client secret) por acesso + chave de renovação; o site guarda a chave em localStorage e renova via `/renovar` sem pedir nada.
+- Secret: `npx wrangler secret put GOOGLE_CLIENT_SECRET --config worker/wrangler.toml` (nunca no repositório). Deploy: `npx wrangler deploy --config worker/wrangler.toml`.
+- Google Cloud: cliente Web com redirect `…workers.dev/retorno`; app OAuth em Produção (em Teste a chave vence em 7 dias). Origens aceitas: `PERMITIDOS` no Worker.
+- Sem mudança nativa (Android segue no googleSignIn.native.ts).

@@ -1,4 +1,4 @@
-// Firebase só para o login Google (perfil). Os dados vão para o Drive do próprio usuário (services/drive.ts).
+// Firebase: login Google e Firestore só para convites de reunião (services/convites.ts). Os dados vão para o Drive do próprio usuário (services/drive.ts).
 import { Platform } from 'react-native';
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import * as FirebaseAuth from 'firebase/auth';

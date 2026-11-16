@@ -1,10 +1,14 @@
 {
+  "firestore": {
+    "rules": "firestore.rules"
+  },
   "hosting": {
     "site": "feedtec",
     "public": "dist",
     "ignore": [
       "firebase.json",
-      "**/.*"
+      "**/.*",
+      "!.well-known/**"
     ],
     "rewrites": [
       {

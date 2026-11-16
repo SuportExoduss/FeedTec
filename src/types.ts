@@ -54,6 +54,14 @@ export interface Realizada {
   pautas: (Pauta & { tratada: boolean })[]; devolutiva: string; criadoEm: Millis;
 }
 
+/**
+ * Ocorrência do dia. `tipo` = grupo dado pelo Gemini (parecidas ficam no mesmo tipo); sem = ainda não classificada.
+ * `fotos` = ids das imagens no Drive (pasta FeedTec).
+ */
+export interface Ocorrencia {
+  id: string; dia: string; titulo: string; descricao?: string; observacao?: string; tipo?: string; fotos?: string[]; criadoEm: Millis;
+}
+
 export interface Dados {
   versao: 1;
   tecnicos: Tecnico[];
@@ -61,8 +69,17 @@ export interface Dados {
   tarefas?: Tarefa[];
   reunioes?: Reuniao[];
   realizadas?: Realizada[];
+  ocorrencias?: Ocorrencia[];
+  /** Resumo da IA por assunto (tipo de ocorrência), refeito a cada ocorrência classificada nele. */
+  resumos?: Record<string, string>;
   /** Chave do Gemini (AI Studio) do próprio gestor; vai junto no Drive dele para valer em todo aparelho. */
   chaveGemini?: string;
+  /** Como o gestor quer que a IA escreva (Perfil); vai junto em todo pedido de feedback. */
+  instrucoesIA?: string;
+  /** Cor do aro da foto no topo: azul (masculino) ou vermelho (feminino). */
+  genero?: 'masculino' | 'feminino';
+  /** E-mails para quem o gestor já enviou reunião (mais recente primeiro). */
+  recentes?: string[];
   /** Momento da última alteração: decide quem vence entre o cache local e o Drive. */
   alteradoEm: Millis;
 }

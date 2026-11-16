@@ -1,12 +1,13 @@
 // Google Drive REST v3 por fetch (sem SDK pesado). Pasta visível "FeedTec" com o feedtec.json;
 // os áudios (F3) entram na mesma pasta. Escopo drive.file: o app só enxerga o que ele mesmo criou.
 import type { Dados } from '../types';
+import { TESTE } from '../lib/teste';
 import { lerDadosJson } from '../lib/dados';
 
 const API = 'https://www.googleapis.com/drive/v3/files';
 const UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
 const PASTA = 'FeedTec';
-const ARQUIVO = 'feedtec.json';
+const ARQUIVO = TESTE ? 'feedtec-teste.json' : 'feedtec.json';
 
 export class DriveSemAcesso extends Error {}
 
@@ -65,8 +66,8 @@ export async function salvarNoDrive(token: string, d: Dados): Promise<void> {
   ids.arquivo = (await r.json()).id as string;
 }
 
-/** Áudio da conversa na pasta FeedTec. Duas chamadas (conteúdo, depois nome/pasta): multipart binário não roda igual na web e no RN. */
-export async function salvarAudioNoDrive(token: string, audio: Blob, nome: string): Promise<string> {
+/** Arquivo (áudio da conversa, foto da ocorrência) na pasta FeedTec. Duas chamadas (conteúdo, depois nome/pasta): multipart binário não roda igual na web e no RN. */
+export async function salvarArquivoNoDrive(token: string, audio: Blob, nome: string): Promise<string> {
   const r = await chamar(token, `${UPLOAD}?uploadType=media&fields=id`, {
     method: 'POST', headers: { 'Content-Type': audio.type || 'audio/mp4' }, body: audio,
   });
@@ -77,12 +78,12 @@ export async function salvarAudioNoDrive(token: string, audio: Blob, nome: strin
   return id;
 }
 
-/** Endereço do conteúdo do áudio (precisa do token no cabeçalho). */
-export const urlAudio = (id: string) => `${API}/${id}?alt=media`;
+/** Endereço do conteúdo do arquivo (precisa do token no cabeçalho). */
+export const urlArquivo = (id: string) => `${API}/${id}?alt=media`;
 
-/** Web: o <audio> não manda cabeçalho, então baixa o arquivo inteiro. */
-export async function baixarAudio(token: string, id: string): Promise<Blob> {
-  return (await chamar(token, urlAudio(id))).blob();
+/** Web: <audio>/<img> não mandam cabeçalho, então baixa o arquivo inteiro (também usado na exportação). */
+export async function baixarArquivo(token: string, id: string): Promise<Blob> {
+  return (await chamar(token, urlArquivo(id))).blob();
 }
 
 /** Ao sair da conta: outra conta tem outra pasta. */

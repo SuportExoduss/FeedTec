@@ -32,14 +32,22 @@ export async function reconectarDrive(): Promise<void> {
   await GoogleSignin.signIn();
 }
 
-export async function tokenDrive(): Promise<string | null> {
+// A biblioteca recusa um getTokens enquanto outro está em andamento: chamadas juntas
+// (abrir + voltar ao app + salvar) dividem o mesmo pedido em vez de virar "reconectar".
+let pedido: Promise<string | null> | null = null;
+export function tokenDrive(): Promise<string | null> {
   configurar();
-  try {
-    if (!GoogleSignin.getCurrentUser()) await GoogleSignin.signInSilently();
-    return (await GoogleSignin.getTokens()).accessToken;
-  } catch {
-    return null;
-  }
+  pedido ??= (async () => {
+    try {
+      if (!GoogleSignin.getCurrentUser()) await GoogleSignin.signInSilently();
+      return (await GoogleSignin.getTokens()).accessToken;
+    } catch {
+      return null;
+    } finally {
+      pedido = null;
+    }
+  })();
+  return pedido;
 }
 
 export async function sairDoGoogle(): Promise<void> {

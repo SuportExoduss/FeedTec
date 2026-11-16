@@ -16,12 +16,16 @@ const FILTROS: { valor: Filtro; titulo: string }[] = [
   { valor: 'positivo', titulo: 'Positivo' }, { valor: 'gravados', titulo: 'Gravados' }];
 
 export default function Historico() {
+  return <Tela titulo="Histórico" voltar><ListaHistorico /></Tela>;
+}
+
+/** Também aparece como aba dentro do Perfil. */
+export function ListaHistorico() {
   const { dados } = useEstado();
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const nome = (id: string) => dados.tecnicos.find(t => t.id === id)?.nome ?? 'Técnico removido';
 
   return (
-    <Tela titulo="Histórico" voltar>
       <SectionList
         sections={feedbacksPorDia(dados, undefined, filtro === 'gravados')
           .map(g => ({ title: g.dia, data: g.itens.filter(f => filtro === 'todos' || filtro === 'gravados' || f.tom === filtro) }))
@@ -47,6 +51,5 @@ export default function Historico() {
           </Pressable>
         )}
       />
-    </Tela>
   );
 }

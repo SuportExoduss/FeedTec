@@ -1,14 +1,16 @@
 // Peças de tela. Regra do app: pouca coisa visível; o resto fica no menu ⋮ do canto superior.
 // Telas sem `voltar` são abas: a barra inferior (BarraAbas) cuida da margem de baixo.
 import { useState, type ReactNode } from 'react';
-import { ActivityIndicator, Alert, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { TESTE } from '../lib/teste';
+import { ActivityIndicator, Alert, Dimensions, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { colors, fonte, radius, space, type } from '../theme';
 
 /** Coluna central: em tablet e computador tudo fica na mesma largura e alinhado ao centro. */
-export const COLUNA = { width: '100%', maxWidth: 720, alignSelf: 'center' } as const;
+// No PC (web largo) a coluna cresce; o menu lateral fica fora dela.
+export const COLUNA = { width: '100%', maxWidth: Platform.OS === 'web' && Dimensions.get('window').width >= 1024 ? 1000 : 720, alignSelf: 'center' } as const;
 
 export interface ItemMenu { titulo: string; onPress: () => void; perigo?: boolean }
 
@@ -23,6 +25,7 @@ export function Tela({ titulo, voltar, menu, children }: {
         {voltar ? <Icone nome="arrow-back" rotulo="Voltar" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
           : <View style={{ width: space(2) }} />}
         <Text accessibilityRole="header" numberOfLines={1} style={[type.title, { flex: 1, fontSize: 22 }]}>{titulo}</Text>
+        {TESTE ? <Selo texto="TESTE" cor={colors.melhorar} /> : null}
         {menu?.length ? <Icone nome="ellipsis-vertical" rotulo="Mais opções" onPress={() => setAberto(true)} /> : null}
       </View>
       <View style={{ flex: 1, ...COLUNA }}>{children}</View>

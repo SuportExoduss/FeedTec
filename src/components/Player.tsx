@@ -4,7 +4,7 @@ import { Platform, Pressable, Text, View } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { Botao, Icone, mensagem } from './ui';
 import { useEstado } from '../Estado';
-import { DriveSemAcesso, baixarAudio, urlAudio } from '../services/drive';
+import { DriveSemAcesso, baixarArquivo, urlArquivo } from '../services/drive';
 import { tokenDrive } from '../services/googleSignIn';
 import { colors, space, type } from '../theme';
 
@@ -24,8 +24,8 @@ export function Player({ audioId }: { audioId: string }) {
     (async () => {
       const token = await tokenDrive();
       if (!token) throw new DriveSemAcesso('');
-      if (Platform.OS === 'web') player.replace((url = URL.createObjectURL(await baixarAudio(token, audioId))));
-      else player.replace({ uri: urlAudio(audioId), headers: { Authorization: `Bearer ${token}` } });
+      if (Platform.OS === 'web') player.replace((url = URL.createObjectURL(await baixarArquivo(token, audioId))));
+      else player.replace({ uri: urlArquivo(audioId), headers: { Authorization: `Bearer ${token}` } });
       if (vivo) setEstado('pronto');
     })().catch(e => vivo && setEstado(e instanceof DriveSemAcesso ? 'reconectar' : `Não deu para abrir a gravação. ${mensagem(e)}`));
     return () => { vivo = false; if (url) URL.revokeObjectURL(url); };

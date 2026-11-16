@@ -9,6 +9,7 @@ import { useEstado } from '../Estado';
 import { diaIso, DIAS_SEMANA, mostrarDia, proximaReuniao } from '../lib/agenda';
 import { colors, fonte, radius, space, temaEscuro } from '../theme';
 import { COLUNA } from '../components/ui';
+import { FotoPerfil } from '../components/FotoPerfil';
 
 type Icone = keyof typeof Ionicons.glyphMap;
 type Compromisso = { id: string; titulo: string; dia: string; hora?: string; icone: Icone; cor: string; rota: Href };
@@ -70,6 +71,7 @@ export default function Inicio() {
           {pendentes.length ? <View style={{ position: 'absolute', top: 10, right: 11, width: 9, height: 9, borderRadius: 5,
             backgroundColor: colors.amarelo, borderWidth: 1.5, borderColor: colors.bg }} /> : null}
         </Pressable>
+        <FotoPerfil />
       </View>
       <ScrollView contentContainerStyle={{ ...COLUNA, paddingBottom: space(8) }}>
         <AvisoAtualizacao />

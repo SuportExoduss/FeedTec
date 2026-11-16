@@ -11,7 +11,8 @@ import {
   AVISO_REUNIAO, DIAS_SEMANA, adicionarReuniao, diaIso, editarReuniao, mostrarDia, proximaReuniao, realizadasOrdenadas,
   registrarReuniao, removerRealizada, removerReuniao, reuniaoDeHoje, reunioesOrdenadas, type CamposReuniao,
 } from '../lib/agenda';
-import { novoId } from '../lib/dados';
+import { lembrarEmail, novoId } from '../lib/dados';
+import { apagarConvite, enviarConvite, ouvirConvites, type Convite } from '../services/convites';
 import { colors, radius, space, type } from '../theme';
 import type { Pauta, Realizada, Reuniao } from '../types';
 
@@ -19,16 +20,46 @@ const cartao = ({ pressed }: { pressed: boolean }) => ({ gap: 2, padding: space(
 const qtd = (n: number) => (n === 1 ? '1 pauta' : `${n} pautas`);
 
 export default function Reunioes() {
-  const { dados, alterar } = useEstado();
+  const { dados, alterar, user } = useEstado();
+  const [enviar, setEnviar] = useState<Reuniao | null>(null);
+  const [convites, setConvites] = useState<Convite[]>([]);
+  const [erroConvite, setErroConvite] = useState<string | null>(null);
   const [aba, setAba] = useState<'agendadas' | 'realizadas'>('agendadas');
   const [editar, setEditar] = useState<Reuniao | 'nova' | null>(null);
   const [doDia, setDoDia] = useState<Reuniao | null>(null);
   const [vista, setVista] = useState<Realizada | null>(null);
   const hoje = diaIso(new Date());
+  useEffect(() => (user?.email ? ouvirConvites(user.email, setConvites) : setConvites([])), [user?.email]);
 
-  const topo = (
+  async function aceitar(c: Convite) {
+    try {
+      adicionarReuniao(dados, c.reuniao); // valida antes: erro aqui não pode estourar dentro do alterar
+      alterar(d => adicionarReuniao(d, c.reuniao));
+      await apagarConvite(c.id);
+      setErroConvite(null);
+    } catch (e) { setErroConvite(mensagem(e)); }
+  }
+  async function recusar(c: Convite) {
+    if (!await confirmar('Recusar reunião?', `${c.deNome}: ${c.reuniao.titulo}`, 'Recusar')) return;
+    try { await apagarConvite(c.id); } catch (e) { setErroConvite(mensagem(e)); }
+  }
+
+  const topo = (<View style={{ gap: space(2) }}>
+    {convites.map(c => (
+      <View key={c.id} style={[cartao({ pressed: false }), { borderColor: colors.accent }]}>
+        <Text style={type.body} numberOfLines={2}>{c.deNome} enviou: {c.reuniao.titulo}</Text>
+        <Text style={type.caption}>
+          {c.reuniao.dia ? mostrarDia(c.reuniao.dia) : `Toda ${(DIAS_SEMANA[c.reuniao.diaSemana] ?? '').toLowerCase()}`} · {c.reuniao.hora} · {qtd(c.reuniao.pautas.length)}
+        </Text>
+        <View style={{ flexDirection: 'row', gap: space(3), justifyContent: 'flex-end', marginTop: space(2) }}>
+          <Botao titulo="Recusar" secundario onPress={() => recusar(c)} />
+          <Botao titulo="Aceitar" onPress={() => aceitar(c)} />
+        </View>
+      </View>
+    ))}
+    <Erro texto={erroConvite} />
     <Abas valor={aba} onChange={setAba} opcoes={[{ valor: 'agendadas', titulo: `Agendadas (${(dados.reunioes ?? []).length})` }, { valor: 'realizadas', titulo: `Realizadas (${(dados.realizadas ?? []).length})` }]} />
-  );
+  </View>);
   const lista = { contentContainerStyle: { padding: space(4), gap: space(2), paddingBottom: space(24) }, ListHeaderComponent: topo };
 
   return (
@@ -47,6 +78,9 @@ export default function Reunioes() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
                   <Text style={[type.body, { flex: 1 }]} numberOfLines={1}>{item.titulo}</Text>
                   {agora ? <Text style={{ color: colors.accentText, backgroundColor: colors.accent, fontSize: 12, fontWeight: '700', paddingHorizontal: space(2), paddingVertical: 2, borderRadius: 999 }}>HOJE</Text> : null}
+                  <Pressable onPress={() => setEnviar(item)} hitSlop={10} accessibilityRole="button" accessibilityLabel={`Enviar ${item.titulo} a um colega`}>
+                    <Ionicons name="paper-plane-outline" size={20} color={colors.textMuted} />
+                  </Pressable>
                 </View>
                 <Text style={[type.caption, passou && { color: colors.danger }]}>
                   {item.dia ? `${mostrarDia(item.dia)} · ${item.hora}` : `Toda ${DIAS_SEMANA[item.diaSemana].toLowerCase()} · ${item.hora} · próxima ${mostrarDia(diaIso(proximaReuniao(item))).slice(0, 5)}`}
@@ -78,7 +112,50 @@ export default function Reunioes() {
       <ReuniaoDoDia reuniao={doDia} onFechar={() => setDoDia(null)} onEditar={r => { setDoDia(null); setEditar(r); }}
         onRegistrar={(id, tratadas, devolutiva) => alterar(d => registrarReuniao(d, id, tratadas, devolutiva))} />
       <VerRealizada realizada={vista} onFechar={() => setVista(null)} onRemover={id => alterar(d => removerRealizada(d, id))} />
+      <EnviarReuniao reuniao={enviar} recentes={dados.recentes ?? []} onFechar={() => setEnviar(null)}
+        onEnviado={email => alterar(d => lembrarEmail(d, email))} />
     </Tela>
+  );
+}
+
+function EnviarReuniao({ reuniao, recentes, onFechar, onEnviado }: {
+  reuniao: Reuniao | null; recentes: string[]; onFechar: () => void; onEnviado: (email: string) => void;
+}) {
+  const [email, setEmail] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+  useEffect(() => { setEmail(''); setErro(null); }, [reuniao]);
+
+  async function enviar() {
+    if (!reuniao) return;
+    setEnviando(true);
+    try {
+      await enviarConvite(email, reuniao);
+      onEnviado(email.trim().toLowerCase());
+      onFechar();
+    } catch (e) { setErro(mensagem(e)); } finally { setEnviando(false); }
+  }
+
+  return (
+    <Dialogo visivel={!!reuniao} titulo="Enviar reunião" onFechar={onFechar}>
+      <Text style={type.caption}>{reuniao?.titulo}: o colega recebe em Reuniões e, se aceitar, ela vira dele.</Text>
+      <Campo rotulo="E-mail do Google do colega" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
+      {recentes.length ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(2) }}>
+          {recentes.map(e => (
+            <Pressable key={e} onPress={() => setEmail(e)} accessibilityRole="button" accessibilityLabel={`Usar ${e}`}
+              style={{ paddingHorizontal: space(3), paddingVertical: space(1), borderRadius: 999, borderWidth: 1, borderColor: email === e ? colors.accent : colors.border }}>
+              <Text style={type.caption}>{e}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
+      <Erro texto={erro} />
+      <View style={{ flexDirection: 'row', gap: space(3), justifyContent: 'flex-end' }}>
+        <Botao titulo="Cancelar" secundario onPress={onFechar} />
+        <Botao titulo="Enviar" onPress={enviar} carregando={enviando} disabled={!email.trim()} />
+      </View>
+    </Dialogo>
   );
 }
 

@@ -3,17 +3,28 @@
     "name": "FeedTec",
     "slug": "feedtec",
     "scheme": "feedtec",
-    "version": "0.1.1",
+    "version": "0.1.9",
     "orientation": "default",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "backgroundColor": "#101214",
     "android": {
       "package": "com.trevotec.feedtec",
       "googleServicesFile": "./google-services.json",
       "allowBackup": false,
       "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.REQUEST_INSTALL_PACKAGES"
+      ],
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [{ "scheme": "https", "host": "feedtec.web.app" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "web": {
@@ -38,7 +49,14 @@
       "expo-status-bar",
       "expo-audio",
       "expo-notifications",
-      "expo-sharing"
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O FeedTec usa a câmera para anexar fotos às ocorrências.",
+          "photosPermission": "O FeedTec abre a galeria para anexar fotos às ocorrências."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

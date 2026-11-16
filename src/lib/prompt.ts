@@ -19,6 +19,27 @@ As anotações podem ser a transcrição da conversa ("Eu:" é o supervisor, "T�
 Se vier "Contexto do gestor", use-o para entender e priorizar os assuntos e respeite as ressalvas dele (o que omitir, como tratar um ponto); não trate o contexto como fato novo da conversa sem que ele diga isso.
 Responda apenas com o texto do feedback, sem título, sem cabeçalho, sem markdown e sem comentários seus. Um parágrafo por assunto, quantos as anotações pedirem.`;
 
+/** Regras fixas + o jeito de escrever que o gestor pediu no Perfil. */
+export const instrucaoComGestor = (extra = '') => extra.trim()
+  ? `${INSTRUCAO}
+Preferências de escrita do próprio supervisor (siga-as, sem quebrar as regras acima, principalmente a de não inventar fatos):
+"""
+${extra.trim()}
+"""`
+  : INSTRUCAO;
+
+export type ModoReescrita = 'natural' | 'curto' | 'detalhado';
+export const REESCRITA: Record<ModoReescrita, { titulo: string; pedido: string }> = {
+  natural: { titulo: 'Natural', pedido: 'Reescreva o feedback abaixo mais natural e humano, como uma pessoa escreveria, menos formal e sem frases feitas. Mesmos fatos, mesmo tamanho.' },
+  curto: { titulo: 'Curto', pedido: 'Reescreva o feedback abaixo bem mais curto e direto, só com o essencial. Não corte números, metas, prazos nem combinados.' },
+  detalhado: { titulo: 'Detalhado', pedido: 'Reescreva o feedback abaixo mais detalhado, explicando melhor o porquê e o impacto de cada ponto, sem inventar fatos novos.' },
+};
+export const pedidoReescrita = (modo: ModoReescrita, texto: string) => `${REESCRITA[modo].pedido}
+Feedback:
+"""
+${texto.trim()}
+"""`;
+
 export function montarPedido(tom: Tom, nomeTecnico: string, anotacoes: string, contexto = ''): string {
   const a = anotacoes.trim();
   if (!a) throw new Error('Escreva o que aconteceu antes de gerar.');
@@ -85,3 +106,37 @@ export const inverterFalas = (falas: Fala[]): Fala[] =>
 /** A conversa vira as "anotações" que seguem para o feedback. */
 export const conversaComoTexto = (falas: Fala[]) =>
   falas.map(f => `${f.quem === 'eu' ? 'Eu' : 'Técnico'}: ${f.texto}`).join('\n');
+
+/** Classificação das ocorrências diárias: o Gemini encaixa num tipo existente ou cria um novo. */
+export const INSTRUCAO_TIPO = `Você organiza as ocorrências diárias que um supervisor registra na empresa (podem ser de qualquer área: equipe, clientes, campo, estrutura, administrativo).
+Leia a ocorrência e diga a que tipo ela pertence. Use um dos tipos existentes quando for o mesmo problema de fundo, mesmo com palavras diferentes.
+Só crie um tipo novo se nenhum servir; nesse caso dê um nome curto e genérico (2 a 5 palavras, em português, sem pontuação no fim) que sirva para ocorrências parecidas no futuro.
+Responda só com o nome do tipo.`;
+
+export const FORMATO_TIPO = { type: 'OBJECT', properties: { tipo: { type: 'STRING' } }, required: ['tipo'] };
+
+export function pedidoTipo(o: { titulo: string; descricao?: string; observacao?: string }, tipos: { tipo: string; exemplos: string[] }[]): string {
+  const existentes = tipos.length
+    ? tipos.map(t => `- ${t.tipo} (ex.: ${t.exemplos.join('; ')})`).join('\n')
+    : '(nenhum ainda)';
+  return `Tipos existentes:\n${existentes}\n\nOcorrência:\nTítulo: ${o.titulo}`
+    + (o.descricao ? `\nDescrição: ${o.descricao}` : '') + (o.observacao ? `\nObservação: ${o.observacao}` : '');
+}
+
+const chave = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+
+/** Resposta do Gemini → tipo final, reaproveitando a grafia de um existente (evita "Rede física" e "rede fisica" separados). */
+export function escolherTipo(resposta: string, tipos: string[]): string {
+  const limpo = resposta.replace(/["“”.]/g, '').trim().replace(/\s+/g, ' ');
+  return tipos.find(t => chave(t) === chave(limpo)) ?? (limpo ? limpo[0].toUpperCase() + limpo.slice(1) : 'Outros');
+}
+
+export const INSTRUCAO_RESUMO = `Você é o assistente de recorrência de um supervisor. Recebe todas as ocorrências de um mesmo assunto (podem ser de qualquer área da empresa).
+Escreva em português, 2 a 4 frases curtas, sem título nem lista: o que se repete, quando/onde costuma acontecer (se der para ver), se está aumentando, e uma sugestão prática para reduzir.
+Use só o que está nas ocorrências; não invente causas.`;
+
+export function pedidoResumo(tipo: string, os: { dia: string; titulo: string; descricao?: string; observacao?: string }[]): string {
+  // ponytail: só as 40 mais recentes; resumo de assunto enorme fica sobre o recorte recente.
+  return `Assunto: ${tipo}\nOcorrências (${os.length}, mais recente primeiro):\n` + os.slice(0, 40).map(o =>
+    `- ${o.dia}: ${o.titulo}` + (o.descricao ? ` — ${o.descricao}` : '') + (o.observacao ? ` (obs.: ${o.observacao})` : '')).join('\n');
+}

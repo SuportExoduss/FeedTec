@@ -7,9 +7,9 @@ import { SeletorTom } from '../../components/Tom';
 import { Gravador, apagarGravacao } from '../../components/Gravador';
 import { useEstado } from '../../Estado';
 import { adicionarFeedback } from '../../lib/dados';
-import { conversaComoTexto, inverterFalas, montarPedido } from '../../lib/prompt';
+import { REESCRITA, conversaComoTexto, inverterFalas, montarPedido, pedidoReescrita, type ModoReescrita } from '../../lib/prompt';
 import { gerarTexto } from '../../services/gemini';
-import { salvarAudioNoDrive } from '../../services/drive';
+import { salvarArquivoNoDrive } from '../../services/drive';
 import { tokenDrive } from '../../services/googleSignIn';
 import { space, type } from '../../theme';
 import type { Fala, Tom } from '../../types';
@@ -23,6 +23,7 @@ export default function NovoFeedback() {
   const [contexto, setContexto] = useState('');
   const [texto, setTexto] = useState('');
   const [gerando, setGerando] = useState(false);
+  const [reescrevendo, setReescrevendo] = useState<ModoReescrita | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [conversa, setConversa] = useState<Fala[] | undefined>();
   const [audio, setAudio] = useState<Blob | null>(null);
@@ -35,9 +36,17 @@ export default function NovoFeedback() {
     setErro(null);
     if (!dados.chaveGemini) { setErro('Cadastre sua chave do Gemini no Perfil primeiro.'); return; }
     setGerando(true);
-    try { setTexto(await gerarTexto(dados.chaveGemini, montarPedido(tom, tecnico!.nome, bruto, comContexto ? contexto : ''))); }
+    try { setTexto(await gerarTexto(dados.chaveGemini, montarPedido(tom, tecnico!.nome, bruto, comContexto ? contexto : ''), dados.instrucoesIA)); }
     catch (e) { setErro(mensagem(e)); }
     finally { setGerando(false); }
+  }
+
+  async function reescrever(modo: ModoReescrita) {
+    setErro(null);
+    setReescrevendo(modo);
+    try { setTexto(await gerarTexto(dados.chaveGemini!, pedidoReescrita(modo, texto), dados.instrucoesIA)); }
+    catch (e) { setErro(mensagem(e)); }
+    finally { setReescrevendo(null); }
   }
 
   async function salvar() {
@@ -48,7 +57,7 @@ export default function NovoFeedback() {
     let audioId: string | undefined;
     try {
       const token = audio && (await tokenDrive());
-      if (audio && token) audioId = await salvarAudioNoDrive(token, audio, `conversa-${tecnico!.nome}-${new Date().toISOString().slice(0, 16)}.${audio.type.match(/ogg|webm|mp4|wav|flac|mp3|mpeg/)?.[0].replace('mpeg', 'mp3') ?? 'aac'}`);
+      if (audio && token) audioId = await salvarArquivoNoDrive(token, audio, `conversa-${tecnico!.nome}-${new Date().toISOString().slice(0, 16)}.${audio.type.match(/ogg|webm|mp4|wav|flac|mp3|mpeg/)?.[0].replace('mpeg', 'mp3') ?? 'aac'}`);
     } catch { /* segue sem o áudio; a cópia no aparelho fica */ }
     // Já está no Drive: a cópia guardada no aparelho não precisa mais ficar.
     if (audioId && arquivo) apagarGravacao(arquivo);
@@ -87,6 +96,15 @@ export default function NovoFeedback() {
         {texto ? (
           <>
             <Campo rotulo="Feedback (pode ajustar)" value={texto} onChangeText={setTexto} multiline />
+            <Text style={type.caption}>Reescrever</Text>
+            <View style={{ flexDirection: 'row', gap: space(2) }}>
+              {(Object.keys(REESCRITA) as ModoReescrita[]).map(m => (
+                <View key={m} style={{ flex: 1 }}>
+                  <Botao titulo={REESCRITA[m].titulo} secundario carregando={reescrevendo === m}
+                    disabled={!!reescrevendo || gerando} onPress={() => reescrever(m)} />
+                </View>
+              ))}
+            </View>
             <Botao titulo="Salvar feedback" onPress={salvar} carregando={salvando} />
           </>
         ) : null}

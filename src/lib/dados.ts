@@ -1,6 +1,6 @@
 // Regras puras sobre os dados (sem rede nem armazenamento): fáceis de testar.
 import { lerDiaIso, lerHora } from './agenda';
-import type { Dados, Feedback, Pauta, Realizada, Reuniao, Tarefa, Tecnico, Tom } from '../types';
+import type { Dados, Feedback, Ocorrencia, Pauta, Realizada, Reuniao, Tarefa, Tecnico, Tom } from '../types';
 
 export const novoId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
@@ -44,10 +44,22 @@ export function removerFeedback(d: Dados, id: string, agora = Date.now()): Dados
   return { ...d, feedbacks: d.feedbacks.filter(f => f.id !== id), alteradoEm: agora };
 }
 
+export function definirGenero(d: Dados, genero: 'masculino' | 'feminino', agora = Date.now()): Dados {
+  return { ...d, genero, alteradoEm: agora };
+}
+
 export function definirChaveGemini(d: Dados, chave: string, agora = Date.now()): Dados {
   const { chaveGemini: _, ...resto } = d;
   return chave.trim() ? { ...resto, chaveGemini: chave.trim(), alteradoEm: agora } : { ...resto, alteradoEm: agora };
 }
+
+export function definirInstrucoesIA(d: Dados, texto: string, agora = Date.now()): Dados {
+  const { instrucoesIA: _, ...resto } = d;
+  return texto.trim() ? { ...resto, instrucoesIA: texto.trim(), alteradoEm: agora } : { ...resto, alteradoEm: agora };
+}
+
+export const lembrarEmail = (d: Dados, email: string, agora = Date.now()): Dados =>
+  ({ ...d, recentes: [email, ...(d.recentes ?? []).filter(e => e !== email)].slice(0, 8), alteradoEm: agora });
 
 /** Feedbacks (de um técnico ou de todos), do mais novo ao mais antigo, agrupados pelo dia local. */
 export function feedbacksPorDia(d: Dados, tecnicoId?: string, soGravados = false): { dia: string; itens: Feedback[] }[] {
@@ -105,8 +117,18 @@ export function lerDadosJson(texto: string): Dados | null {
       .map((x: Realizada) => ({ ...x, devolutiva: typeof x.devolutiva === 'string' ? x.devolutiva : '',
         pautas: (Array.isArray(x.pautas) ? x.pautas : []).filter(p => typeof p?.id === 'string' && typeof p?.titulo === 'string')
           .map(p => ({ ...pautas([p])[0], tratada: p.tratada === true })) }));
-    return { versao: 1, tecnicos, feedbacks, tarefas, reunioes, realizadas, alteradoEm: Number(o.alteradoEm) || 0,
-      ...(typeof o.chaveGemini === 'string' && o.chaveGemini ? { chaveGemini: o.chaveGemini } : {}) };
+    const opc = (x: unknown) => (typeof x === 'string' && x ? x : undefined);
+    const ocorrencias = (Array.isArray(o.ocorrencias) ? o.ocorrencias : []).filter((x: Ocorrencia) =>
+      typeof x?.id === 'string' && typeof x?.titulo === 'string' && lerDiaIso(x?.dia))
+      .map((x: Ocorrencia): Ocorrencia => {
+        const fotos = Array.isArray(x.fotos) ? x.fotos.filter(f => typeof f === 'string' && f) : [];
+        return JSON.parse(JSON.stringify({ id: x.id, dia: x.dia, titulo: x.titulo, descricao: opc(x.descricao), observacao: opc(x.observacao),
+          tipo: opc(x.tipo), fotos: fotos.length ? fotos : undefined, criadoEm: Number(x.criadoEm) || 0 }));
+      });
+    const resumos: Record<string, string> = Object.fromEntries(Object.entries(o.resumos && typeof o.resumos === 'object' ? o.resumos : {}).filter((e): e is [string, string] => typeof e[1] === 'string' && !!e[1]));
+    return { versao: 1, tecnicos, feedbacks, tarefas, reunioes, realizadas, ocorrencias, ...(Object.keys(resumos).length ? { resumos } : {}), alteradoEm: Number(o.alteradoEm) || 0,
+      ...(typeof o.chaveGemini === 'string' && o.chaveGemini ? { chaveGemini: o.chaveGemini } : {}),
+      ...(o.genero === 'masculino' || o.genero === 'feminino' ? { genero: o.genero } : {}) };
   } catch {
     return null;
   }

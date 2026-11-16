@@ -3,7 +3,8 @@ import Constants from 'expo-constants';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image, Linking, Platform, ScrollView, Text, View } from 'react-native';
 import { Abas, Avatar, Botao, Campo, Tela } from '../components/ui';
-import { definirChaveGemini } from '../lib/dados';
+import { definirChaveGemini, definirInstrucoesIA, definirGenero } from '../lib/dados';
+import { ListaHistorico } from './historico';
 import { AvisoDrive } from '../components/AvisoDrive';
 import { AvisoBateria } from '../components/AvisoBateria';
 import { useEstado, type StatusDrive } from '../Estado';
@@ -54,9 +55,16 @@ export default function Perfil() {
   const { user, status, sair, dados, alterar } = useEstado();
   const [chave, setChave] = useState(dados.chaveGemini ?? '');
   const salva = chave.trim() === (dados.chaveGemini ?? '');
+  const [instrucoes, setInstrucoes] = useState(dados.instrucoesIA ?? '');
+  const instrucoesSalvas = instrucoes.trim() === (dados.instrucoesIA ?? '');
   const modo = useSyncExternalStore(ouvirModo, lerModo);
+  const [aba, setAba] = useState<'perfil' | 'historico'>('perfil');
   return (
     <Tela titulo="Perfil" voltar>
+      <View style={{ paddingHorizontal: space(4), paddingTop: space(2), width: '100%', maxWidth: 720, alignSelf: 'center' }}>
+        <Abas valor={aba} onChange={setAba} opcoes={[{ valor: 'perfil', titulo: 'Perfil' }, { valor: 'historico', titulo: 'Histórico' }]} />
+      </View>
+      {aba === 'historico' ? <ListaHistorico /> : (
       <ScrollView contentContainerStyle={{ width: '100%', maxWidth: 720, alignSelf: 'center', paddingBottom: space(10) }}>
       <View style={{ padding: space(4), gap: space(3), alignItems: 'center' }}>
         {user?.photoURL ? <Image source={{ uri: user.photoURL }} style={{ width: 80, height: 80, borderRadius: 40 }} accessibilityIgnoresInvertColors />
@@ -66,6 +74,12 @@ export default function Perfil() {
           <Text style={type.caption}>{user?.email}</Text>
         </View>
         <Text style={[type.caption, { color: status === 'salvo' ? colors.positivo : colors.textMuted }]}>{ROTULO[status]}</Text>
+        <View style={{ alignSelf: 'stretch', gap: space(2) }}>
+          <Text style={type.caption}>Gênero (cor do aro da foto: azul ou vermelho)</Text>
+          {/* sem escolha, nenhuma opção aparece marcada */}
+          <Abas valor={dados.genero as 'masculino'} onChange={g => alterar(d => definirGenero(d, g))}
+            opcoes={[{ valor: 'masculino', titulo: 'Masculino' }, { valor: 'feminino', titulo: 'Feminino' }]} />
+        </View>
       </View>
 
       <Secao titulo="Integração com IA" icone="sparkles-outline">
@@ -92,6 +106,12 @@ export default function Perfil() {
         <Botao titulo={salva && chave ? 'Chave salva' : 'Salvar chave'} disabled={salva}
           onPress={() => alterar(d => definirChaveGemini(d, chave))} />
         <Botao titulo="Criar chave no AI Studio" secundario onPress={() => Linking.openURL('https://aistudio.google.com/apikey')} />
+        <Text style={[type.body, { marginTop: space(2) }]}>Como a IA deve escrever</Text>
+        <Text style={type.caption}>Opcional. Vale para todo feedback gerado ou reescrito.</Text>
+        <Campo rotulo="Instruções" value={instrucoes} onChangeText={setInstrucoes} multiline
+          placeholder="Ex.: frases curtas; sempre fechar com um próximo passo; não usar 'colaborador'…" />
+        <Botao titulo={instrucoesSalvas && instrucoes ? 'Instruções salvas' : 'Salvar instruções'} secundario disabled={instrucoesSalvas}
+          onPress={() => alterar(d => definirInstrucoesIA(d, instrucoes))} />
       </Secao>
 
       <Secao titulo="Configurações" icone="settings-outline">
@@ -101,6 +121,9 @@ export default function Perfil() {
         <AvisoDrive />
         <AvisoBateria />
         {Platform.OS === 'web' ? <AvisosNavegador /> : null}
+        {Platform.OS === 'web' && /iPhone|iPad/.test(navigator.userAgent) && !(navigator as { standalone?: boolean }).standalone ? (
+          <Text style={type.caption}>Instalar no iPhone: no Safari, toque em Compartilhar (quadrado com seta) e depois em “Adicionar à Tela de Início”. O FeedTec abre como app, em tela cheia.</Text>
+        ) : null}
       </Secao>
 
       <Secao titulo="Sobre" icone="information-circle-outline">
@@ -112,6 +135,7 @@ export default function Perfil() {
         <Botao titulo="Sair" secundario onPress={sair} />
       </View>
       </ScrollView>
+      )}
     </Tela>
   );
 }

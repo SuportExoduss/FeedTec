@@ -99,7 +99,7 @@ export function Gravador({ chave, tecnico, onPronto }: {
     setProgresso({ fase: 'enviando' });
     try {
       const audio = g.blob ?? await (await fetch(g.uri)).blob();
-      const falas = await transcrever(chave!, audio, g.mime, tecnico, setProgresso);
+      const falas = await transcrever(chave!, g.blob ?? new File(g.uri), g.mime, tecnico, setProgresso);
       setConferir({ falas, audio, g });
       setFase('vozes');
     } catch (e) {

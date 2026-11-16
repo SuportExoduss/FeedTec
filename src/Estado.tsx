@@ -1,8 +1,10 @@
 // Estado do app: usuário logado + dados. Grava primeiro no aparelho (abre na hora, funciona sem rede)
 // e logo depois no Drive. Ao abrir, fica com a versão mais recente entre aparelho e Drive.
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { TESTE } from './lib/teste';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState } from 'react-native';
 import { auth } from './services/firebase';
 import { entrarComGoogle, reconectarDrive, sairDoGoogle, tokenDrive } from './services/googleSignIn';
 import { DriveSemAcesso, esquecerIdsDrive, lerDoDrive, salvarNoDrive } from './services/drive';
@@ -26,7 +28,7 @@ interface Estado {
 }
 
 const Ctx = createContext<Estado | null>(null);
-const chaveCache = (uid: string) => `feedtec.dados.${uid}`;
+const chaveCache = (uid: string) => `feedtec.${TESTE ? 'teste' : 'dados'}.${uid}`;
 
 export function EstadoProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -71,6 +73,13 @@ export function EstadoProvider({ children }: { children: ReactNode }) {
     setCarregandoUsuario(false);
     if (u) carregar(u.uid);
   }), [carregar]);
+
+  // Voltou ao app/aba: relê o Drive (mudança feita em outro aparelho, ex. reunião aceita no celular).
+  // Sem isso, uma aba antiga mostraria dados velhos e, ao editar, regravaria o Drive por cima.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', e => { if (e === 'active' && auth.currentUser) carregar(auth.currentUser.uid); });
+    return () => sub.remove();
+  }, [carregar]);
 
   useEffect(() => agendarLembretes(dados), [dados]); // inclui dados vindos do Drive e o sair (cancela tudo)
 

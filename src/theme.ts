@@ -41,10 +41,10 @@ export function aplicarTema(escuroLigado: boolean) {
 
 // Escolha do tema no Perfil: Sistema / Claro / Escuro, guardada só no aparelho.
 export type ModoTema = 'sistema' | 'claro' | 'escuro';
-let modo: ModoTema = 'sistema';
+let modo: ModoTema = 'escuro'; // padrão do app; o gestor troca no Perfil
 const ouvintes = new Set<() => void>();
 const CHAVE_MODO = 'feedtec.tema';
-AsyncStorage.getItem(CHAVE_MODO).then(v => { if (v === 'claro' || v === 'escuro') definirModo(v, false); }).catch(() => undefined);
+AsyncStorage.getItem(CHAVE_MODO).then(v => { if (v === 'claro' || v === 'escuro' || v === 'sistema') definirModo(v, false); }).catch(() => undefined);
 export const lerModo = () => modo;
 export function ouvirModo(f: () => void) { ouvintes.add(f); return () => { ouvintes.delete(f); }; }
 export function definirModo(m: ModoTema, guardar = true) {

@@ -18,7 +18,11 @@ function arquivos(dir) {
 // Favicon (public/favicon.png) e idioma: o HTML gerado pelo Expo não tem nenhum dos dois.
 const html = path.join(DIST, 'index.html');
 fs.writeFileSync(html, fs.readFileSync(html, 'utf8').replace('<html lang="en">', '<html lang="pt-BR">')
-  .replace('</head>', '<link rel="icon" href="/favicon.png" type="image/png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">\n</head>'));
+  .replace('</head>', '<link rel="icon" href="/favicon.png" type="image/png"><link rel="apple-touch-icon" href="/apple-touch-icon.png">'
+    // Instalável (iPhone: Safari › Compartilhar › Adicionar à Tela de Início) e em tela cheia.
+    + '<link rel="manifest" href="/manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes">'
+    + '<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black">'
+    + '<meta name="apple-mobile-web-app-title" content="FeedTec">\n</head>'));
 
 const origem = path.join(DIST, 'assets/node_modules');
 if (!fs.existsSync(origem)) { console.log('preparar-web: nada a fazer (sem assets/node_modules)'); process.exit(0); }

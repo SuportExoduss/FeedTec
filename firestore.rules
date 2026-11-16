@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// FeedTec — só convites de reunião (services/convites.ts). Sem Cloud Functions: estas regras são a defesa.
+// Quem envia cria em nome próprio; só o destinatário (e-mail verificado do Google) e quem enviou leem e apagam.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /convites/{id} {
+      function logado() { return request.auth != null; }
+      function souDestino() {
+        return request.auth.token.email_verified == true && resource.data.para == request.auth.token.email.lower();
+      }
+      function texto(t, max) { return t is string && t.size() > 0 && t.size() <= max; }
+
+      allow read, delete: if logado() && (resource.data.deUid == request.auth.uid || souDestino());
+      allow create: if logado()
+        && request.resource.data.keys().hasOnly(['deUid', 'deNome', 'para', 'reuniao', 'criadoEm'])
+        && request.resource.data.deUid == request.auth.uid
+        && texto(request.resource.data.deNome, 80)
+        && texto(request.resource.data.para, 254) && request.resource.data.para == request.resource.data.para.lower()
+        && request.resource.data.criadoEm == request.time
+        && request.resource.data.reuniao is map
+        && texto(request.resource.data.reuniao.titulo, 200)
+        && request.resource.data.reuniao.pautas is list && request.resource.data.reuniao.pautas.size() <= 50;
+      allow update: if false;
+    }
+  }
+}

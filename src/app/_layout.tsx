@@ -7,7 +7,7 @@ import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_7
 import { EstadoProvider, useEstado } from '../Estado';
 import { aplicarTema, colors, lerModo, ouvirModo } from '../theme';
 import { Abertura } from '../components/Abertura';
-import { BarraAbas } from '../components/BarraAbas';
+import { BarraAbas, BarraLateral } from '../components/BarraAbas';
 
 function Portao() {
   const { user, carregandoUsuario } = useEstado();
@@ -17,9 +17,12 @@ function Portao() {
   }
   if (!user && rota !== 'entrar') return <Redirect href="/entrar" />;
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
-      <BarraAbas />
+    <View style={{ flex: 1, flexDirection: 'row', backgroundColor: colors.bg }}>
+      <BarraLateral />
+      <View style={{ flex: 1 }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }} />
+        <BarraAbas />
+      </View>
     </View>
   );
 }
