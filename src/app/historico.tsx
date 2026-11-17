@@ -3,11 +3,11 @@ import { useState } from 'react';
 import { Pressable, SectionList, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Abas, Tela } from '../components/ui';
+import { Abas, Tela, Vazio } from '../components/ui';
 import { Etiqueta } from '../components/Tom';
 import { useEstado } from '../Estado';
 import { feedbacksPorDia } from '../lib/dados';
-import { colors, fonte, radius, space, type } from '../theme';
+import { colors, fonte, radius, space, type, cartao } from '../theme';
 import type { Tom } from '../types';
 
 type Filtro = 'todos' | Tom | 'gravados';
@@ -35,13 +35,12 @@ export function ListaHistorico() {
         stickySectionHeadersEnabled={false}
         contentContainerStyle={{ padding: space(4), gap: space(2), paddingBottom: space(10) }}
         ListEmptyComponent={
-          <Text style={[type.caption, { textAlign: 'center', marginTop: space(10) }]}>{filtro === 'todos' ? 'Nenhum feedback ainda.' : 'Nenhum feedback neste filtro.'}</Text>
+          <Vazio icone="chatbubble-ellipses-outline" titulo={filtro === 'todos' ? 'Nenhum feedback ainda' : 'Nenhum feedback neste filtro'} />
         }
         renderSectionHeader={({ section }) => <Text style={[type.caption, { marginTop: space(4) }]}>{section.title}</Text>}
         renderItem={({ item }) => (
           <Pressable onPress={() => router.push({ pathname: '/feedback/[id]', params: { id: item.id } })} accessibilityRole="button"
-            style={({ pressed }) => ({ gap: space(1), padding: space(4), borderRadius: radius.card, backgroundColor: colors.surface,
-              borderWidth: 1, borderColor: colors.border, opacity: pressed ? 0.7 : 1 })}>
+            style={({ pressed }) => ({ gap: space(1), padding: space(4), ...cartao(), opacity: pressed ? 0.7 : 1 })}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
               <Text style={[type.body, { fontFamily: fonte.semi, flexShrink: 1 }]} numberOfLines={1}>{nome(item.tecnicoId)}</Text>
               <Etiqueta tom={item.tom} />

@@ -10,7 +10,7 @@ import { RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, 
 import { Botao, Erro, confirmar, mensagem } from './ui';
 import { inverterFalas } from '../lib/prompt';
 import { transcrever, type Progresso } from '../services/gemini';
-import { colors, radius, space, type } from '../theme';
+import { colors, radius, space, type, cartao } from '../theme';
 import type { Fala } from '../types';
 
 // Web: o primeiro formato que o navegador grava e o Gemini aceita. Android: AAC puro (audio/aac).
@@ -167,7 +167,7 @@ export function Gravador({ chave, tecnico, onPronto }: {
       <Erro texto={erro} />
       {salvas.length ? <Text style={type.caption}>Gravações guardadas neste aparelho</Text> : null}
       {salvas.map(g => (
-        <View key={g.uri} style={{ gap: space(2), padding: space(3), borderRadius: radius.card, backgroundColor: colors.surface }}>
+        <View key={g.uri} style={{ gap: space(2), padding: space(3), ...cartao() }}>
           <Text style={type.body} numberOfLines={1}>{g.nome.replace(/\.\w+$/, '')}</Text>
           <View style={{ flexDirection: 'row', gap: space(2) }}>
             <View style={{ flex: 1 }}><Botao titulo="Transcrever" secundario disabled={!chave} onPress={() => transcreverGravacao(g, true)} /></View>
@@ -187,7 +187,7 @@ export function Gravador({ chave, tecnico, onPronto }: {
       setConferir(null); setFase('parado');
     };
     return (
-      <View accessibilityLiveRegion="polite" style={{ gap: space(3), padding: space(4), borderRadius: radius.card, backgroundColor: colors.surface }}>
+      <View accessibilityLiveRegion="polite" style={{ gap: space(3), padding: space(4), ...cartao() }}>
         <Text style={type.title}>Quem é quem?</Text>
         <Text style={type.caption}>Você</Text>
         <Text style={type.body} numberOfLines={3}>“{amostra('eu')}”</Text>
@@ -211,7 +211,7 @@ export function Gravador({ chave, tecnico, onPronto }: {
   );
 
   return (
-    <View style={{ gap: space(3), padding: space(4), borderRadius: radius.card, backgroundColor: colors.surface, alignItems: 'center' }}>
+    <View style={{ gap: space(3), padding: space(4), ...cartao(), alignItems: 'center' }}>
       <Text accessibilityLiveRegion="polite" style={[type.title, { fontVariant: ['tabular-nums'] }]}>
         {st.isRecording ? '● ' : '❚❚ '}{relogio(st.durationMillis)}
       </Text>

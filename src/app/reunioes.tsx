@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Abas, Botao, BotaoMais, Campo, Dialogo, Erro, Marca, Tela, confirmar, mensagem } from '../components/ui';
+import { Abas, Botao, BotaoMais, Campo, Dialogo, Erro, Marca, Tela, confirmar, mensagem, Vazio } from '../components/ui';
 import { CampoAntes, CampoData, CampoHora } from '../components/seletores';
 import { AvisoBateria } from '../components/AvisoBateria';
 import { useEstado } from '../Estado';
@@ -13,10 +13,10 @@ import {
 } from '../lib/agenda';
 import { lembrarEmail, novoId } from '../lib/dados';
 import { apagarConvite, enviarConvite, ouvirConvites, type Convite } from '../services/convites';
-import { colors, radius, space, type } from '../theme';
+import { colors, radius, space, type, cartao as card } from '../theme';
 import type { Pauta, Realizada, Reuniao } from '../types';
 
-const cartao = ({ pressed }: { pressed: boolean }) => ({ gap: 2, padding: space(4), borderRadius: radius.card, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, opacity: pressed ? 0.7 : 1 });
+const cartao = ({ pressed }: { pressed: boolean }) => ({ gap: 2, padding: space(4), ...card(), opacity: pressed ? 0.7 : 1 });
 const qtd = (n: number) => (n === 1 ? '1 pauta' : `${n} pautas`);
 
 export default function Reunioes() {
@@ -69,7 +69,7 @@ export default function Reunioes() {
         <FlatList {...lista}
           data={reunioesOrdenadas(dados)}
           keyExtractor={r => r.id}
-          ListEmptyComponent={<Text style={[type.caption, { textAlign: 'center', marginTop: space(10) }]}>Nenhuma reunião. Toque em + para criar.</Text>}
+          ListEmptyComponent={<Vazio icone="calendar-outline" titulo="Nenhuma reunião" dica="Toque em + para criar." />}
           renderItem={({ item }) => {
             const agora = reuniaoDeHoje(dados, item);
             const passou = !!item.dia && item.dia < hoje;
@@ -94,7 +94,7 @@ export default function Reunioes() {
         <FlatList {...lista}
           data={realizadasOrdenadas(dados)}
           keyExtractor={r => r.id}
-          ListEmptyComponent={<Text style={[type.caption, { textAlign: 'center', marginTop: space(10) }]}>Nenhuma reunião registrada ainda.</Text>}
+          ListEmptyComponent={<Vazio icone="document-text-outline" titulo="Nenhuma reunião registrada ainda" />}
           renderItem={({ item }) => (
             <Pressable onPress={() => setVista(item)} accessibilityRole="button" style={cartao}>
               <Text style={type.body} numberOfLines={1}>{item.titulo}</Text>

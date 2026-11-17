@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import { Redirect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Botao, Erro, mensagem } from '../components/ui';
+import { Botao, Erro, Logo, mensagem } from '../components/ui';
 import { useEstado } from '../Estado';
 import { colors, space, type } from '../theme';
 
@@ -25,7 +25,7 @@ export default function Entrar() {
     <SafeAreaView style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', padding: space(6) }}>
       <View style={{ width: '100%', maxWidth: 400, alignSelf: 'center', gap: space(5) }}>
         <View style={{ gap: space(2) }}>
-          <Text style={[type.caption, { letterSpacing: 4 }]}>FEEDTEC</Text>
+          <Logo largura={150} />
           <Text accessibilityRole="header" style={type.title}>Feedbacks da sua equipe, prontos em minutos.</Text>
           <Text style={type.caption}>Seus dados ficam no seu Google Drive, numa pasta FeedTec.</Text>
         </View>

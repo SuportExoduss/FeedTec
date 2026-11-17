@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { Abas, Botao, BotaoMais, Campo, Dialogo, Erro, Marca, Selo, Tela, confirmar, mensagem } from '../components/ui';
+import { Abas, Botao, BotaoMais, Campo, Dialogo, Erro, Marca, Selo, Tela, confirmar, mensagem, Vazio } from '../components/ui';
 import { CampoData } from '../components/seletores';
 import { Miniaturas, carregarFoto, escolherFoto } from '../components/Fotos';
 import { useEstado } from '../Estado';
@@ -12,7 +12,7 @@ import { exportar, type Formato, type Fotos } from '../lib/exportar';
 import { adicionarOcorrencia, definirResumo, definirTipo, deslocar, doTipo, editarOcorrencia, nomeMes, noPeriodo, ponderacao, porDia, removerOcorrencia, repetida,
   rotuloPeriodo, tiposExistentes, type CamposOcorrencia, type Periodo } from '../lib/ocorrencias';
 import { classificarOcorrencia, resumirAssunto } from '../services/gemini';
-import { colors, fonte, radius, space, type } from '../theme';
+import { colors, fonte, radius, space, type, cartao } from '../theme';
 import type { Dados, Ocorrencia } from '../types';
 
 const PERIODOS: { valor: Periodo; titulo: string }[] = [{ valor: 'dia', titulo: 'Dia' }, { valor: 'semana', titulo: 'Semana' }, { valor: 'mes', titulo: 'Mês' }];
@@ -125,7 +125,7 @@ export default function Ocorrencias() {
               <Text style={[type.caption, { fontFamily: fonte.semi }]}>{diaSemana(g.dia)}, {mostrarDia(g.dia)} · {g.itens.length}</Text>
               {g.itens.map(o => <Card key={o.id} o={o} onAbrir={() => setAberta(o)} />)}
             </View>
-          )) : <Text style={[type.caption, { textAlign: 'center', marginTop: space(10) }]}>Nenhuma ocorrência. Toque em + para registrar.</Text>
+          )) : <Vazio icone="alert-circle-outline" titulo="Nenhuma ocorrência" dica="Toque em + para registrar." />
         ) : (
           <Recorrencia dados={dados} refIso={ref} semTipo={semTipo.length} resumindo={resumindo} onAbrir={setAberta}
             onClassificar={dados.chaveGemini && semTipo.length ? () => classificar(semTipo, dados) : undefined}
@@ -170,7 +170,7 @@ function Card({ o, onAbrir }: { o: Ocorrencia; onAbrir: () => void }) {
   const [aberto, setAberto] = useState(false);
   const temMais = !!(o.descricao || o.observacao || o.fotos?.length);
   return (
-    <View style={{ borderRadius: radius.card, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+    <View style={{ ...cartao() }}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <Pressable onPress={onAbrir} accessibilityRole="button" accessibilityLabel={`Abrir ${o.titulo}`} style={{ flex: 1, padding: space(4), gap: 4 }}>
           <Text style={[type.body, { fontFamily: fonte.semi }]} numberOfLines={aberto ? undefined : 1}>{o.titulo}</Text>

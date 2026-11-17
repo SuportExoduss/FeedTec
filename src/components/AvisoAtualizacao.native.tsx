@@ -10,7 +10,7 @@ import { Directory, File, Paths } from 'expo-file-system';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { maisNova } from '../lib/dados';
 import { Botao, mensagem } from './ui';
-import { colors, radius, space, type } from '../theme';
+import { colors, radius, space, type, cartao } from '../theme';
 
 const RELEASE = 'https://api.github.com/repos/SuportExoduss/FeedTec-apk/releases/latest';
 // Token fine-grained só com Contents: Read no FeedTec-apk (repo só com APKs). Vem do .env.local.
@@ -91,7 +91,7 @@ export function AvisoAtualizacao() {
     <Modal visible transparent animationType="fade" onRequestClose={() => {}}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: space(5) }}>
         <View accessibilityViewIsModal style={{ width: '100%', maxWidth: 440, alignSelf: 'center', gap: space(4), padding: space(5),
-          backgroundColor: colors.surface, borderRadius: radius.card }}>
+          ...cartao() }}>
           <Ionicons name="cloud-download-outline" size={32} color={colors.accent} />
           <Text accessibilityRole="header" style={[type.title, { fontSize: 20 }]}>Nova versão {nova.versao}</Text>
           <Text style={type.body}>

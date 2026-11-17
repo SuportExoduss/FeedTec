@@ -34,10 +34,26 @@ export function removerTecnico(d: Dados, id: string, agora = Date.now()): Dados 
 }
 
 export function adicionarFeedback(d: Dados, tecnicoId: string, tom: Tom, bruto: string, texto: string, agora = Date.now(),
-  extra: Pick<Feedback, 'conversa' | 'audioId'> = {}): Dados {
+  { concluidas = [], ...extra }: Pick<Feedback, 'conversa' | 'audioId'> & { concluidas?: Pauta[] } = {}): Dados {
   if (!texto.trim()) throw new Error('O feedback está vazio.');
-  const f: Feedback = { id: novoId(), tecnicoId, tom, bruto: bruto.trim(), texto: texto.trim(), criadoEm: agora, ...extra };
-  return { ...d, feedbacks: [...d.feedbacks, f], alteradoEm: agora };
+  const f: Feedback = { id: novoId(), tecnicoId, tom, bruto: bruto.trim(), texto: texto.trim(), criadoEm: agora, ...extra,
+    ...(concluidas.length ? { pautas: concluidas.map(p => p.titulo) } : {}) };
+  const ids = concluidas.map(p => p.id);
+  return { ...d, feedbacks: [...d.feedbacks, f], alteradoEm: agora,
+    tecnicos: d.tecnicos.map(t => (t.id === tecnicoId && t.pautas ? { ...t, pautas: t.pautas.filter(p => !ids.includes(p.id)) } : t)) };
+}
+
+/** Pauta para o próximo feedback do técnico (fica aberta até ser marcada num feedback). */
+export function adicionarPautaTecnico(d: Dados, tecnicoId: string, titulo: string, agora = Date.now()): Dados {
+  const t = limpar(titulo);
+  if (!t) throw new Error('Escreva a pauta.');
+  return { ...d, alteradoEm: agora,
+    tecnicos: d.tecnicos.map(x => (x.id === tecnicoId ? { ...x, pautas: [...(x.pautas ?? []), { id: novoId(), titulo: t }] } : x)) };
+}
+
+export function removerPautaTecnico(d: Dados, tecnicoId: string, id: string, agora = Date.now()): Dados {
+  return { ...d, alteradoEm: agora,
+    tecnicos: d.tecnicos.map(x => (x.id === tecnicoId ? { ...x, pautas: (x.pautas ?? []).filter(p => p.id !== id) } : x)) };
 }
 
 export function removerFeedback(d: Dados, id: string, agora = Date.now()): Dados {

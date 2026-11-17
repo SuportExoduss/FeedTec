@@ -3,11 +3,11 @@ import { useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Avatar, BotaoMais, Selo, Tela } from '../components/ui';
+import { Avatar, BotaoMais, Selo, Tela, Vazio } from '../components/ui';
 import { FormTecnico } from '../components/FormTecnico';
 import { useEstado } from '../Estado';
 import { adicionarTecnico, tecnicosOrdenados } from '../lib/dados';
-import { colors, fonte, radius, space, type } from '../theme';
+import { colors, fonte, radius, space, type, cartao } from '../theme';
 
 export default function Tecnicos() {
   const { dados, alterar } = useEstado();
@@ -21,12 +21,11 @@ export default function Tecnicos() {
         keyExtractor={t => t.id}
         contentContainerStyle={{ padding: space(4), gap: space(2), paddingBottom: space(24) }}
         ListEmptyComponent={
-          <Text style={[type.caption, { textAlign: 'center', marginTop: space(10) }]}>Nenhum técnico ainda. Toque em + para adicionar.</Text>
+          <Vazio icone="people-outline" titulo="Nenhum técnico ainda" dica="Toque em + para adicionar o primeiro." />
         }
         renderItem={({ item }) => (
           <Pressable onPress={() => router.push({ pathname: '/tecnico/[id]', params: { id: item.id } })} accessibilityRole="button"
-            style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: space(3), padding: space(4), borderRadius: radius.card,
-              backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, opacity: pressed ? 0.7 : 1 })}>
+            style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: space(3), padding: space(4), ...cartao(), opacity: pressed ? 0.7 : 1 })}>
             <Avatar nome={item.nome} apagado={item.inativo} />
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={[type.body, { fontFamily: fonte.semi }]} numberOfLines={1}>{item.nome}</Text>

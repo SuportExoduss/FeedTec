@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { adicionarFeedback, adicionarTecnico, definirChaveGemini, editarTecnico, feedbacksPorDia, lerDadosJson, maisNova, maisRecente, removerFeedback, removerTecnico, tecnicosOrdenados } from './dados';
+import { adicionarFeedback, adicionarPautaTecnico, adicionarTecnico, definirChaveGemini, editarTecnico, feedbacksPorDia, lerDadosJson, maisNova, maisRecente, removerFeedback, removerTecnico, tecnicosOrdenados } from './dados';
 import { conversaComoTexto, inverterFalas, lerTranscricao, montarPedido } from './prompt';
 import { DADOS_VAZIOS } from '../types';
 
@@ -127,4 +127,14 @@ test('versão nova do APK', () => {
   assert.ok(maisNova('1.0', '0.9.9'));
   assert.ok(!maisNova('0.1.0', '0.1.0'));
   assert.ok(!maisNova('0.1.0', '0.2.0'));
+});
+
+test('pautas do técnico: marcadas saem e vão para o feedback, as outras ficam', () => {
+  let d = adicionarTecnico(DADOS_VAZIOS, 'Ana');
+  const id = d.tecnicos[0]!.id;
+  d = adicionarPautaTecnico(adicionarPautaTecnico(d, id, 'Pontualidade'), id, 'EPI');
+  const [a] = d.tecnicos[0]!.pautas!;
+  d = adicionarFeedback(d, id, 'neutro', 'x', 'texto', 1, { concluidas: [a!] });
+  assert.deepEqual(d.tecnicos[0]!.pautas!.map(p => p.titulo), ['EPI']);
+  assert.deepEqual(d.feedbacks[0]!.pautas, ['Pontualidade']);
 });

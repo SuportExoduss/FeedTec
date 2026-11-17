@@ -29,14 +29,17 @@ export default function NovoFeedback() {
   const [audio, setAudio] = useState<Blob | null>(null);
   const [arquivo, setArquivo] = useState<string | undefined>();
   const [erro, setErro] = useState<string | null>(null);
+  const [marcadas, setMarcadas] = useState<string[]>([]);
   const tecnico = dados.tecnicos.find(t => t.id === tecnicoId);
   if (!tecnico) return <Redirect href="/" />;
+  const concluidas = (tecnico.pautas ?? []).filter(p => marcadas.includes(p.id));
 
   async function gerar() {
     setErro(null);
     if (!dados.chaveGemini) { setErro('Cadastre sua chave do Gemini no Perfil primeiro.'); return; }
     setGerando(true);
-    try { setTexto(await gerarTexto(dados.chaveGemini, montarPedido(tom, tecnico!.nome, bruto, comContexto ? contexto : ''), dados.instrucoesIA)); }
+    try { setTexto(await gerarTexto(dados.chaveGemini, montarPedido(tom, tecnico!.nome, bruto,
+      [concluidas.length ? `Pautas tratadas nesta conversa (aborde cada uma): ${concluidas.map(p => p.titulo).join('; ')}` : '', comContexto ? contexto : ''].filter(Boolean).join('\n')), dados.instrucoesIA)); }
     catch (e) { setErro(mensagem(e)); }
     finally { setGerando(false); }
   }
@@ -61,7 +64,7 @@ export default function NovoFeedback() {
     } catch { /* segue sem o áudio; a cópia no aparelho fica */ }
     // Já está no Drive: a cópia guardada no aparelho não precisa mais ficar.
     if (audioId && arquivo) apagarGravacao(arquivo);
-    try { alterar(d => adicionarFeedback(d, tecnico!.id, tom, bruto, texto, Date.now(), { conversa, audioId })); router.back(); }
+    try { alterar(d => adicionarFeedback(d, tecnico!.id, tom, bruto, texto, Date.now(), { conversa, audioId, concluidas })); router.back(); }
     catch (e) { setErro(mensagem(e)); }
     finally { setSalvando(false); }
   }
@@ -69,6 +72,15 @@ export default function NovoFeedback() {
   return (
     <Tela titulo={`Feedback · ${tecnico.nome}`} voltar>
       <ScrollView contentContainerStyle={{ padding: space(4), gap: space(4), paddingBottom: space(10) }} keyboardShouldPersistTaps="handled">
+        {tecnico.pautas?.length ? (
+          <View style={{ gap: space(1) }}>
+            <Text style={type.caption}>Pautas deste feedback (marque as tratadas; as outras ficam para o próximo)</Text>
+            {tecnico.pautas.map(p => (
+              <Marca key={p.id} texto={p.titulo} marcado={marcadas.includes(p.id)}
+                onPress={() => setMarcadas(m => (m.includes(p.id) ? m.filter(x => x !== p.id) : [...m, p.id]))} />
+            ))}
+          </View>
+        ) : null}
         <SeletorTom valor={tom} onMudar={setTom} />
         <Gravador chave={dados.chaveGemini} tecnico={tecnico.nome} onPronto={(falas, a, arq) => { setConversa(falas); setAudio(a); setArquivo(arq); setBruto(conversaComoTexto(falas)); }} />
         {conversa ? (

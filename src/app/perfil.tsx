@@ -9,7 +9,7 @@ import { AvisoDrive } from '../components/AvisoDrive';
 import { AvisoBateria } from '../components/AvisoBateria';
 import { useEstado, type StatusDrive } from '../Estado';
 import { ativarAvisos, estadoAvisos, type EstadoAvisos } from '../services/lembretes';
-import { colors, definirModo, fonte, lerModo, ouvirModo, radius, space, type } from '../theme';
+import { colors, definirModo, fonte, lerModo, ouvirModo, radius, space, type, cartao } from '../theme';
 
 const ROTULO: Record<StatusDrive, string> = {
   carregando: 'Carregando do Drive…',
@@ -142,8 +142,7 @@ export default function Perfil() {
 
 function Secao({ titulo, icone, children }: { titulo: string; icone: keyof typeof Ionicons.glyphMap; children: React.ReactNode }) {
   return (
-    <View style={{ marginHorizontal: space(4), marginTop: space(4), padding: space(4), gap: space(3), borderRadius: radius.card,
-      backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }}>
+    <View style={{ marginHorizontal: space(4), marginTop: space(4), padding: space(4), gap: space(3), ...cartao() }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
         <Ionicons name={icone} size={20} color={colors.amarelo} />
         <Text accessibilityRole="header" style={{ fontFamily: fonte.semi, fontSize: 17, color: colors.text }}>{titulo}</Text>

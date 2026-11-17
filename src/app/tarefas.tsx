@@ -2,14 +2,14 @@
 import { useEffect, useState } from 'react';
 import { FlatList, Platform, Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Abas, Botao, BotaoMais, Campo, Dialogo, Erro, Selo, Tela, confirmar, mensagem } from '../components/ui';
+import { Abas, Botao, BotaoMais, Campo, Dialogo, Erro, Selo, Tela, confirmar, mensagem, Vazio } from '../components/ui';
 import { AvisoBateria } from '../components/AvisoBateria';
 import { useEstado } from '../Estado';
 import { CampoAntes, CampoData, CampoHora } from '../components/seletores';
 import { adicionarTarefa, alternarFeita, diaIso, editarTarefa, mostrarDia, moverTarefa, removerTarefa, situacao, tarefasOrdenadas,
   type CamposTarefa, type Situacao } from '../lib/agenda';
 import { tecnicosOrdenados } from '../lib/dados';
-import { colors, fonte, radius, space, type } from '../theme';
+import { colors, fonte, radius, space, type, cartao } from '../theme';
 import type { Prioridade, Tarefa } from '../types';
 
 const SITUACOES: { valor: Situacao; titulo: string; um: string }[] = [
@@ -42,14 +42,12 @@ export default function Tarefas() {
         data={todas.filter(t => situacao(t) === aba)}
         keyExtractor={t => t.id}
         contentContainerStyle={{ padding: space(4), gap: space(2), paddingBottom: space(24) }}
-        ListEmptyComponent={<Text style={[type.caption, { textAlign: 'center', marginTop: space(10) }]}>
-          {aba === 'pendente' ? 'Nenhuma tarefa. Toque em + para criar.' : 'Nada aqui.'}</Text>}
+        ListEmptyComponent={<Vazio icone="checkbox-outline" titulo={aba === 'pendente' ? 'Nenhuma tarefa' : 'Nada aqui'} dica={aba === 'pendente' ? 'Toque em + para criar.' : undefined} />}
         renderItem={({ item }) => {
           const p = PRIO[item.prioridade ?? 'media'];
           const resp = nomeDe(item.responsavelId);
           return (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1), paddingRight: space(4), borderRadius: radius.card,
-              backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, opacity: item.feita ? 0.6 : 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(1), paddingRight: space(4), ...cartao(), opacity: item.feita ? 0.6 : 1 }}>
               <Pressable onPress={() => alterar(d => alternarFeita(d, item.id))} accessibilityRole="checkbox" accessibilityState={{ checked: item.feita }}
                 accessibilityLabel={`Feita: ${item.titulo}`} style={{ padding: space(4) }}>
                 <Ionicons name={item.feita ? 'checkmark-circle' : item.andamento ? 'time-outline' : 'ellipse-outline'} size={24}

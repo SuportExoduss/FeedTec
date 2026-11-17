@@ -7,6 +7,8 @@ export interface Tecnico {
   funcao?: string;
   /** Saiu da equipe ou afastado: fica no fim da lista, com os feedbacks guardados. */
   inativo?: true;
+  /** Pautas para o próximo feedback: ficam abertas até serem marcadas num feedback. */
+  pautas?: Pauta[];
   criadoEm: Millis;
 }
 
@@ -28,6 +30,8 @@ export interface Feedback {
   conversa?: Fala[];
   /** Id do áudio no Drive (pasta FeedTec). */
   audioId?: string;
+  /** Pautas do técnico concluídas neste feedback (títulos). */
+  pautas?: string[];
 }
 
 /** Tarefa da agenda (F5). `dia` em AAAA-MM-DD; `hora` (HH:MM) liga o lembrete; `antes` = minutos antes (sem = na hora). */

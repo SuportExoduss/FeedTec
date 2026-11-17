@@ -6,11 +6,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Botao, Tela } from '../components/ui';
 import { useLiberado } from '../components/AvisoBateria';
 import { abrirBateria, alarmeExato, bateriaLiberada, passosBateria, pedirAlarmeExato } from '../lib/bateria';
-import { colors, radius, space, type } from '../theme';
+import { colors, radius, space, type, cartao } from '../theme';
 
 function Item({ ok, titulo, texto, botao, onPress }: { ok: boolean | null; titulo: string; texto: string; botao: string; onPress: () => void }) {
   return (
-    <View style={{ gap: space(3), padding: space(4), borderRadius: radius.card, backgroundColor: colors.surface }}>
+    <View style={{ gap: space(3), padding: space(4), ...cartao() }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
         <Ionicons name={ok ? 'checkmark-circle' : 'alert-circle-outline'} size={22} color={ok ? colors.positivo : colors.melhorar} />
         <Text style={[type.body, { fontWeight: '600', flex: 1 }]}>{titulo}</Text>

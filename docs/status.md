@@ -169,3 +169,9 @@
 - Gravação com mais de 12 min é cortada em pedaços de ~10 min no trecho mais quieto (janela de 0,3 s em ±15 s da marca), virando WAV 16 kHz mono; cada pedaço vai ao Gemini com as 3 últimas falas do anterior. Num pedido só o Gemini parava por volta dos 10 min.
 - Site: `cortar()` em `src/services/gemini.ts` (Web Audio). Android: módulo `FeedTecAudio`.
 - **Mudança nativa (à mão):** `AudioPackage.kt` (novo: MediaExtractor + MediaCodec → PCM no cache → WAVs) + `add(AudioPackage())` no `MainApplication.kt`. Versão 0.2.1 (versionCode 12).
+
+## F18 — Pautas do técnico + visual no estilo LystSync + ícone novo — 17/11/2026
+- Pautas: no técnico, "Pautas do próximo feedback"; no novo feedback, as marcadas saem do técnico e ficam no feedback (`pautas`).
+- Visual: cards com sombra suave (`cartao()` em `src/theme.ts`), botão secundário com contorno azul, + com sombra, estado vazio (`Vazio`), indicador em pílula na barra de abas, logo Feed/Tec (`Logo`) no Início, menu lateral do PC e entrada. Cores e layout de PC mantidos.
+- Ícone: logo Feed/Tec sobre #101827 em `public/` (favicon, apple-touch, icon-512) e no Android.
+- **Mudança nativa (à mão):** `mipmap-*/ic_launcher*` regenerados e `ic_launcher_background` = #101827 em `values/colors.xml`. Splash já usava a logo.

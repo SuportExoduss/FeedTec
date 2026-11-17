@@ -2,11 +2,11 @@
 // Telas sem `voltar` são abas: a barra inferior (BarraAbas) cuida da margem de baixo.
 import { useState, type ReactNode } from 'react';
 import { TESTE } from '../lib/teste';
-import { ActivityIndicator, Alert, Dimensions, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
+import { ActivityIndicator, Alert, Dimensions, Image, Modal, Platform, Pressable, ScrollView, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { colors, fonte, radius, space, type } from '../theme';
+import { cartao, colors, fonte, radius, space, type } from '../theme';
 
 /** Coluna central: em tablet e computador tudo fica na mesma largura e alinhado ao centro. */
 // No PC (web largo) a coluna cresce; o menu lateral fica fora dela.
@@ -32,7 +32,7 @@ export function Tela({ titulo, voltar, menu, children }: {
       <Modal visible={aberto} transparent animationType="fade" onRequestClose={() => setAberto(false)}>
         <Pressable style={{ flex: 1 }} onPress={() => setAberto(false)} accessibilityLabel="Fechar menu">
           <SafeAreaView style={{ alignItems: 'flex-end', padding: space(2) }}>
-            <View style={{ backgroundColor: colors.surface, borderRadius: radius.card, borderWidth: 1, borderColor: colors.border, minWidth: 200, paddingVertical: space(1) }}>
+            <View style={{ ...cartao(), boxShadow: '0 8px 24px rgba(0,0,0,0.28)', minWidth: 200, paddingVertical: space(1) }}>
               {menu?.map(i => (
                 <Pressable key={i.titulo} accessibilityRole="menuitem" onPress={() => { setAberto(false); i.onPress(); }}
                   style={({ pressed }) => ({ paddingVertical: space(3), paddingHorizontal: space(4), opacity: pressed ? 0.6 : 1 })}>
@@ -65,7 +65,7 @@ export function Botao({ titulo, onPress, carregando, disabled, secundario, icone
       style={({ pressed }) => ({
         minHeight: 48, borderRadius: radius.input, flexDirection: 'row', gap: space(2), alignItems: 'center', justifyContent: 'center',
         paddingHorizontal: space(4), backgroundColor: secundario ? 'transparent' : colors.accent,
-        borderWidth: secundario ? 1 : 0, borderColor: colors.border, opacity: off ? 0.5 : pressed ? 0.8 : 1,
+        borderWidth: secundario ? 1.5 : 0, borderColor: colors.accent, opacity: off ? 0.5 : pressed ? 0.8 : 1,
       })}>
       {carregando ? <ActivityIndicator color={secundario ? colors.text : colors.accentText} /> : icone}
       <Text style={{ fontSize: 16, fontFamily: fonte.semi, color: secundario ? colors.text : colors.accentText }}>{titulo}</Text>
@@ -90,7 +90,7 @@ export function Dialogo({ visivel, titulo, onFechar, children }: { visivel: bool
   return (
     <Modal visible={visivel} transparent animationType="fade" onRequestClose={onFechar}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: space(5) }}>
-        <View style={{ width: '100%', maxWidth: 440, maxHeight: '100%', alignSelf: 'center', backgroundColor: colors.surface, borderRadius: radius.card }}>
+        <View style={{ width: '100%', maxWidth: 440, maxHeight: '100%', alignSelf: 'center', ...cartao(), borderRadius: 20 }}>
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: space(5), gap: space(4) }}>
             <Text accessibilityRole="header" style={[type.title, { fontSize: 20 }]}>{titulo}</Text>
             {children}
@@ -161,7 +161,7 @@ export function BotaoMais({ rotulo, onPress }: { rotulo: string; onPress: () => 
   return (
     <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={rotulo}
       style={({ pressed }) => ({ position: 'absolute', right: space(5), bottom: space(6), width: 56, height: 56, borderRadius: 28,
-        backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.8 : 1 })}>
+        backgroundColor: colors.accent, boxShadow: '0 4px 12px rgba(36,87,231,0.45)', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.8 : 1 })}>
       <Ionicons name="add" size={28} color={colors.accentText} />
     </Pressable>
   );
@@ -185,6 +185,26 @@ export function Avatar({ nome, tamanho = 44, apagado }: { nome: string; tamanho?
     </View>
   );
 }
+
+/** Lista vazia: ícone em círculo, título e uma dica do que fazer (EmptyState do LystSync). */
+export function Vazio({ icone, titulo, dica }: { icone: keyof typeof Ionicons.glyphMap; titulo: string; dica?: string }) {
+  return (
+    <View style={{ alignItems: 'center', gap: space(2), paddingVertical: space(12), paddingHorizontal: space(8) }}>
+      <View style={{ width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.accent + '1F', marginBottom: space(2) }}>
+        <Ionicons name={icone} size={34} color={colors.accent} />
+      </View>
+      <Text style={{ fontFamily: fonte.semi, fontSize: 17, color: colors.text, textAlign: 'center' }}>{titulo}</Text>
+      {dica ? <Text style={[type.caption, { textAlign: 'center', fontSize: 14 }]}>{dica}</Text> : null}
+    </View>
+  );
+}
+
+/** Logo FeedTec (Feed branco, Tec amarelo) sempre sobre o azul-noite, como no ícone do app. */
+export const Logo = ({ largura = 116 }: { largura?: number }) => (
+  <View style={{ backgroundColor: '#101827', borderRadius: 10, paddingHorizontal: largura * 0.1, paddingVertical: largura * 0.06, alignSelf: 'flex-start' }}>
+    <Image source={require('../../assets/nome-feedtec.png')} accessibilityLabel="FeedTec" style={{ width: largura, height: largura * 0.204 }} resizeMode="contain" />
+  </View>
+);
 
 export const Erro =({ texto }: { texto: string | null }) =>
   texto ? <Text accessibilityRole="alert" style={{ color: colors.danger, fontSize: 14 }}>{texto}</Text> : null;

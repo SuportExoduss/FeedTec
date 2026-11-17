@@ -5,7 +5,7 @@ import { router, useSegments } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, fonte, radius, space } from '../theme';
-import { COLUNA } from './ui';
+import { COLUNA, Logo } from './ui';
 
 const ABAS = [
   { rota: '', titulo: 'Início', icone: 'home' },
@@ -29,7 +29,7 @@ export function BarraLateral() {
   return (
     <View accessibilityRole="tablist" style={{ width: 220, backgroundColor: colors.surface, borderRightWidth: 1, borderColor: colors.border,
       paddingVertical: space(6), paddingHorizontal: space(3), gap: space(1) }}>
-      <Text style={{ fontFamily: fonte.negrito, fontSize: 22, color: colors.text, paddingHorizontal: space(3), marginBottom: space(4) }}>FeedTec</Text>
+      <View style={{ paddingHorizontal: space(2), marginBottom: space(4) }}><Logo largura={130} /></View>
       {LATERAL.map(a => {
         const sel = a.rota === rota;
         const cor = sel ? colors.amarelo : colors.textMuted;
@@ -62,7 +62,9 @@ export function BarraAbas() {
           <Pressable key={a.rota} accessibilityRole="tab" accessibilityState={{ selected: sel }} accessibilityLabel={a.titulo}
             onPress={() => !sel && router.replace(`/${a.rota}`)}
             style={({ pressed }) => ({ flex: 1, alignItems: 'center', gap: 2, paddingVertical: 6, opacity: pressed ? 0.6 : 1 })}>
-            <Ionicons name={sel ? a.icone : (`${a.icone}-outline` as typeof a.icone)} size={22} color={cor} />
+            <View style={{ width: 56, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: sel ? colors.amarelo + '26' : 'transparent' }}>
+              <Ionicons name={sel ? a.icone : (`${a.icone}-outline` as typeof a.icone)} size={22} color={cor} />
+            </View>
             <Text style={{ fontSize: 11, fontFamily: sel ? fonte.semi : fonte.media, color: cor }}>{a.titulo}</Text>
           </Pressable>
         );

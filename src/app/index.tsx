@@ -7,8 +7,8 @@ import { AvisoDrive } from '../components/AvisoDrive';
 import { AvisoAtualizacao } from '../components/AvisoAtualizacao';
 import { useEstado } from '../Estado';
 import { diaIso, DIAS_SEMANA, mostrarDia, proximaReuniao } from '../lib/agenda';
-import { colors, fonte, radius, space, temaEscuro } from '../theme';
-import { COLUNA } from '../components/ui';
+import { colors, fonte, radius, space, temaEscuro, cartao } from '../theme';
+import { COLUNA, Logo } from '../components/ui';
 import { FotoPerfil } from '../components/FotoPerfil';
 
 type Icone = keyof typeof Ionicons.glyphMap;
@@ -26,8 +26,7 @@ function quando(dia: string, hora?: string) {
 function Contador({ titulo, valor, icone, cor, rota }: { titulo: string; valor: number; icone: Icone; cor: string; rota: Href }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${titulo}: ${valor}`} onPress={() => (rota === '/historico' ? router.push(rota) : router.replace(rota))}
-      style={({ pressed }) => ({ flex: 1, padding: space(4), gap: space(3), borderRadius: radius.card, backgroundColor: colors.surface,
-        borderWidth: 1, borderColor: colors.border, opacity: pressed ? 0.75 : 1 })}>
+      style={({ pressed }) => ({ flex: 1, padding: space(4), gap: space(3), ...cartao(), opacity: pressed ? 0.75 : 1 })}>
       <View style={{ width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: cor + '24' }}>
         <Ionicons name={icone} size={22} color={cor} />
       </View>
@@ -62,9 +61,7 @@ export default function Inicio() {
           width: t, height: t, borderRadius: t / 2, backgroundColor: colors.accent, opacity: 0.14 }} />)
       ) : null}
       <View style={{ flexDirection: 'row', alignItems: 'center', height: 56, paddingHorizontal: space(5), ...COLUNA }}>
-        <Text accessibilityRole="header" style={{ flex: 1, fontFamily: fonte.negrito, fontSize: 22, color: colors.text }}>
-          Feed<Text style={{ color: colors.amarelo }}>Tec</Text>
-        </Text>
+        <View accessibilityRole="header" style={{ flex: 1 }}><Logo /></View>
         <Pressable accessibilityRole="button" accessibilityLabel={`Tarefas pendentes: ${pendentes.length}`} hitSlop={8}
           onPress={() => router.replace('/tarefas')} style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name="notifications-outline" size={24} color={colors.text} />
@@ -100,7 +97,7 @@ export default function Inicio() {
           {proximos.length ? proximos.map(c => (
             <Pressable key={c.id} accessibilityRole="button" onPress={() => router.replace(c.rota)}
               style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: space(3), padding: space(3),
-                borderRadius: radius.card, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, opacity: pressed ? 0.75 : 1 })}>
+                ...cartao(), opacity: pressed ? 0.75 : 1 })}>
               <View style={{ width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: c.cor + '24' }}>
                 <Ionicons name={c.icone} size={22} color={c.cor} />
               </View>

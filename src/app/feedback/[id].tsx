@@ -2,12 +2,13 @@
 import { useState } from 'react';
 import { Platform, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Botao, Campo, Tela, confirmar } from '../../components/ui';
 import { Etiqueta } from '../../components/Tom';
 import { Player } from '../../components/Player';
 import { useEstado } from '../../Estado';
 import { removerFeedback } from '../../lib/dados';
-import { colors, radius, space, type } from '../../theme';
+import { colors, radius, space, type, cartao } from '../../theme';
 
 export default function VerFeedback() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -73,9 +74,20 @@ export default function VerFeedback() {
           </View>
         )) : <Text selectable style={[type.body, { lineHeight: 24 }]}>{f.texto}</Text>}
         {aba === 'feedback' && f.bruto && !f.conversa ? (
-          <View style={{ gap: space(1), padding: space(3), borderRadius: radius.card, backgroundColor: colors.surface }}>
+          <View style={{ gap: space(1), padding: space(3), ...cartao() }}>
             <Text style={type.caption}>Suas anotações</Text>
             <Text selectable style={type.caption}>{f.bruto}</Text>
+          </View>
+        ) : null}
+        {aba === 'feedback' && f.pautas?.length ? (
+          <View style={{ gap: space(1), padding: space(3), ...cartao() }}>
+            <Text style={type.caption}>Pautas tratadas</Text>
+            {f.pautas.map((p, i) => (
+              <View key={i} style={{ flexDirection: 'row', alignItems: 'center', gap: space(2) }}>
+                <Ionicons name="checkbox" size={18} color={colors.accent} />
+                <Text selectable style={[type.body, { flex: 1 }]}>{p}</Text>
+              </View>
+            ))}
           </View>
         ) : null}
         </>}

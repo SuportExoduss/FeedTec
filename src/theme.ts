@@ -25,6 +25,10 @@ export const fonte = { regular: 'Inter_400Regular', media: 'Inter_500Medium', se
 export const space = (n: number) => n * 4;
 export const radius = { card: 16, input: 12 } as const;
 
+/** Card no estilo LystSync: superfície com sombra suave em vez de borda. Função porque o tema troca em tempo real. */
+export const cartao = () => ({ borderRadius: radius.card, backgroundColor: colors.surface,
+  boxShadow: temaEscuro ? '0 2px 10px rgba(0,0,0,0.35)' : '0 1px 3px rgba(16,24,39,0.08), 0 4px 14px rgba(16,24,39,0.06)' });
+
 const tipos = () => ({
   title: { color: colors.text, fontSize: 24, fontFamily: fonte.negrito },
   body: { color: colors.text, fontSize: 16, fontFamily: fonte.regular },
