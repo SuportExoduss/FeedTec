@@ -1,8 +1,8 @@
-// Um feedback salvo: texto final em destaque (aba Conversa se foi gravado); copiar/compartilhar e remover no ⋮.
+// Um feedback salvo: texto final em destaque (aba Conversa se foi gravado); editar, copiar/compartilhar e remover no ⋮.
 import { useState } from 'react';
 import { Platform, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { Tela, confirmar } from '../../components/ui';
+import { Botao, Campo, Tela, confirmar } from '../../components/ui';
 import { Etiqueta } from '../../components/Tom';
 import { Player } from '../../components/Player';
 import { useEstado } from '../../Estado';
@@ -13,6 +13,7 @@ export default function VerFeedback() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { dados, alterar } = useEstado();
   const [aba, setAba] = useState<'feedback' | 'conversa'>('feedback');
+  const [editando, setEditando] = useState<string | null>(null);
   const f = dados.feedbacks.find(x => x.id === id);
   if (!f) return <Redirect href="/" />;
   const tecnico = dados.tecnicos.find(t => t.id === f.tecnicoId);
@@ -26,8 +27,15 @@ export default function VerFeedback() {
     alterar(d => removerFeedback(d, f!.id));
   }
 
+  function salvar() {
+    const texto = editando!.trim();
+    if (texto) alterar(d => ({ ...d, feedbacks: d.feedbacks.map(x => x.id === f!.id ? { ...x, texto } : x), alteradoEm: Date.now() }));
+    setEditando(null);
+  }
+
   return (
     <Tela titulo={tecnico?.nome ?? 'Feedback'} voltar menu={[
+      { titulo: 'Editar', onPress: () => { setAba('feedback'); setEditando(f.texto); } },
       { titulo: Platform.OS === 'web' ? 'Copiar texto' : 'Compartilhar', onPress: enviar },
       { titulo: 'Remover', onPress: remover, perigo: true },
     ]}>
@@ -47,6 +55,15 @@ export default function VerFeedback() {
             ))}
           </View>
         ) : null}
+        {editando !== null ? (
+          <View style={{ gap: space(3) }}>
+            <Campo rotulo="Feedback" value={editando} onChangeText={setEditando} multiline autoFocus />
+            <View style={{ flexDirection: 'row', gap: space(2) }}>
+              <View style={{ flex: 1 }}><Botao titulo="Cancelar" secundario onPress={() => setEditando(null)} /></View>
+              <View style={{ flex: 1 }}><Botao titulo="Salvar" disabled={!editando.trim()} onPress={salvar} /></View>
+            </View>
+          </View>
+        ) : <>
         {aba === 'conversa' && f.audioId ? <Player audioId={f.audioId} /> : null}
         {aba === 'conversa' && f.conversa ? f.conversa.map((c, i) => (
           // Balões: eu à direita, técnico à esquerda.
@@ -61,6 +78,7 @@ export default function VerFeedback() {
             <Text selectable style={type.caption}>{f.bruto}</Text>
           </View>
         ) : null}
+        </>}
       </ScrollView>
     </Tela>
   );

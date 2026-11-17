@@ -24,6 +24,7 @@ class MainApplication : Application(), ReactApplication {
           // Packages that cannot be autolinked yet can be added manually here, for example:
           // add(MyReactNativePackage())
           add(BateriaPackage()) // FeedTecBateria: bateria sem restrição? (feito à mão, ver docs/status.md)
+          add(AudioPackage()) // FeedTecAudio: corta gravação longa em pedaços de 10 min (feito à mão, ver docs/status.md)
         }
     )
   }

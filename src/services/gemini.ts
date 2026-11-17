@@ -1,5 +1,7 @@
 // Gemini direto do app com a chave do próprio gestor (AI Studio). Decisão do dono: sem servidor.
 import { fetch as buscarStream } from 'expo/fetch';
+import { File } from 'expo-file-system';
+import { NativeModules } from 'react-native';
 import { FORMATO_TIPO, FORMATO_TRANSCRICAO, INSTRUCAO_RESUMO, INSTRUCAO_TIPO, escolherTipo, instrucaoComGestor, lerTranscricao, pedidoResumo, pedidoTipo, transcricao } from '../lib/prompt';
 import type { Fala } from '../types';
 
@@ -48,25 +50,93 @@ export type Progresso = { fase: 'enviando' } | { fase: 'transcrevendo'; falas: n
 export async function transcrever(chave: string, audio: Blob, mimeType: string, tecnico: string,
   aoProgredir: (p: Progresso) => void): Promise<Fala[]> {
   aoProgredir({ fase: 'enviando' });
-  const parte = audio.size <= LIMITE_INLINE
-    ? { inlineData: { mimeType, data: await base64(audio) } }
-    : { fileData: { mimeType, fileUri: await enviarArquivo(chave, audio, mimeType) } };
-  aoProgredir({ fase: 'transcrevendo', falas: 0 });
-  const texto = await chamar(chave, {
-    systemInstruction: { parts: [{ text: transcricao(tecnico) }] },
-    contents: [{ role: 'user', parts: [parte] }],
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: FORMATO_TRANSCRICAO,
-      // Conversa de 1 h passa fácil de 8 mil tokens; sem isto o JSON vinha cortado e a transcrição "sumia".
-      maxOutputTokens: 65536,
-      // "low" ainda deixa separar as vozes com cuidado sem a espera longa do padrão ("minimal" não existe no 3.8 Flash).
-      thinkingConfig: { thinkingLevel: 'low' },
-    },
-  }, 45_000, parcial => aoProgredir({ fase: 'transcrevendo', falas: parcial.split('"texto"').length - 1 }));
-  const falas = lerTranscricao(texto);
-  if (!falas.length) throw new Error('O Gemini não devolveu nenhuma fala desta gravação.');
+  // Áudio longo num pedido só: o Gemini parava por volta dos 10 min. Então vai em pedaços de ~10 min,
+  // cortados num silêncio (entre palavras), e cada um leva o fim do anterior para seguir o raciocínio.
+  const pedacos = (await cortar(audio)) ?? [audio];
+  const falas: Fala[] = [], vazios: string[] = [];
+  for (let i = 0; i < pedacos.length; i++) {
+    const p = pedacos[i]!, mime = p === audio ? mimeType : 'audio/wav';
+    const parte = p.size <= LIMITE_INLINE
+      ? { inlineData: { mimeType: mime, data: await base64(p) } }
+      : { fileData: { mimeType: mime, fileUri: await enviarArquivo(chave, p, mime) } };
+    if (!i) aoProgredir({ fase: 'transcrevendo', falas: 0 });
+    const pedido = pedacos.length === 1 ? [] : [{ text: `Este é o pedaço ${i + 1} de ${pedacos.length} de uma gravação longa, cortado num silêncio.`
+      + (falas.length ? ` O pedaço anterior terminou assim (continue o raciocínio com as mesmas pessoas; não repita): ${JSON.stringify(falas.slice(-3))}` : '') }];
+    motivo = '';
+    const texto = await chamar(chave, {
+      systemInstruction: { parts: [{ text: transcricao(tecnico) }] },
+      contents: [{ role: 'user', parts: [parte, ...pedido] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: FORMATO_TRANSCRICAO,
+        // Conversa de 1 h passa fácil de 8 mil tokens; sem isto o JSON vinha cortado e a transcrição "sumia".
+        maxOutputTokens: 65536,
+        // "low" ainda deixa separar as vozes com cuidado sem a espera longa do padrão ("minimal" não existe no 3.8 Flash).
+        thinkingConfig: { thinkingLevel: 'low' },
+      },
+    }, 45_000, parcial => aoProgredir({ fase: 'transcrevendo', falas: falas.length + parcial.split('"texto"').length - 1 }));
+    const lidas = lerTranscricao(texto);
+    if (!lidas.length) vazios.push(`pedaço ${i + 1}/${pedacos.length}: ${motivo || '?'}, ${texto.length} letras`);
+    falas.push(...lidas);
+  }
+  if (!falas.length) throw new Error(`O Gemini não devolveu nenhuma fala desta gravação (${vazios.join('; ')}).`);
   return falas;
+}
+
+const TAXA = 16_000; // o Gemini reduz o áudio a 16 kHz de qualquer jeito
+const JANELA = 10 * 60 * TAXA;
+
+/**
+ * Só no navegador: decodifica, corta perto de cada 10 min no trecho mais quieto (pausa entre palavras)
+ * e devolve WAVs 16 kHz mono. null = não precisa ou não deu (vai o arquivo inteiro).
+ */
+export async function cortar(audio: Blob): Promise<Blob[] | null> {
+  // Android: o áudio é File do expo-file-system; corta no nativo (AudioPackage.kt), que devolve os WAVs no cache.
+  if ('base64' in audio) {
+    const nativo = NativeModules.FeedTecAudio as { cortar(uri: string): Promise<string[] | null> } | undefined;
+    const uris = await nativo?.cortar((audio as unknown as File).uri);
+    return uris ? uris.map(u => new File(u) as unknown as Blob) : null;
+  }
+  if (typeof AudioContext === 'undefined') return null;
+  const ctx = new AudioContext({ sampleRate: TAXA });
+  try {
+    const buf = await ctx.decodeAudioData(await audio.arrayBuffer());
+    if (buf.duration <= 12 * 60) return null;
+    // Mistura os canais: gravação de ligação pode ter cada pessoa de um lado.
+    const som = new Float32Array(buf.length);
+    for (let c = 0; c < buf.numberOfChannels; c++) {
+      const d = buf.getChannelData(c);
+      for (let i = 0; i < d.length; i++) som[i]! += d[i]! / buf.numberOfChannels;
+    }
+    const cortes = [0];
+    // Sobra menor que 2 min vai junto no último pedaço.
+    while (cortes.at(-1)! + JANELA < som.length - 2 * 60 * TAXA) cortes.push(silencio(som, cortes.at(-1)! + JANELA));
+    cortes.push(som.length);
+    return cortes.slice(1).map((fim, i) => wav(som.subarray(cortes[i], fim)));
+  } catch { return null; } finally { ctx.close(); }
+}
+
+/** Meio da janela de 0,3 s mais quieta em ±15 s do alvo (0,3 s para não cair no silêncio de dentro de uma palavra). */
+function silencio(som: Float32Array, alvo: number): number {
+  const q = Math.round(TAXA * 0.3), passo = TAXA / 20;
+  let melhor = alvo, menor = Infinity;
+  for (let ini = alvo - 15 * TAXA; ini < alvo + 15 * TAXA; ini += passo) {
+    let e = 0;
+    for (let i = ini; i < ini + q; i++) e += som[i]! * som[i]!;
+    if (e < menor) { menor = e; melhor = ini + q / 2; }
+  }
+  return melhor;
+}
+
+function wav(s: Float32Array): Blob {
+  const v = new DataView(new ArrayBuffer(44 + s.length * 2));
+  const txt = (o: number, t: string) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  txt(0, 'RIFF'); v.setUint32(4, 36 + s.length * 2, true); txt(8, 'WAVE'); txt(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, TAXA, true);
+  v.setUint32(28, TAXA * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  txt(36, 'data'); v.setUint32(40, s.length * 2, true);
+  for (let i = 0; i < s.length; i++) v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, s[i]!)) * 0x7fff, true);
+  return new Blob([v], { type: 'audio/wav' });
 }
 
 // No Android o áudio gravado vem como File do expo-file-system: lê direto do disco
@@ -127,9 +197,11 @@ function erro(status: number, corpo = ''): Error {
   return e;
 }
 
-const textoDe = (j: any): string =>
+// Por que o Gemini parou (STOP, MAX_TOKENS, SAFETY…): vai na mensagem quando não vem fala nenhuma.
+let motivo = '';
+const textoDe = (j: any): string => (motivo = j?.candidates?.[0]?.finishReason ?? j?.promptFeedback?.blockReason ?? motivo,
   (j?.candidates?.[0]?.content?.parts ?? []).filter((p: { thought?: boolean }) => !p.thought)
-    .map((p: { text?: string }) => p.text ?? '').join('');
+    .map((p: { text?: string }) => p.text ?? '').join(''));
 
 /**
  * `espera` é o tempo máximo sem receber nada. Com `aoParcial` a resposta vem aos poucos (SSE),

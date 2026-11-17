@@ -164,3 +164,8 @@
 - Secret: `npx wrangler secret put GOOGLE_CLIENT_SECRET --config worker/wrangler.toml` (nunca no repositório). Deploy: `npx wrangler deploy --config worker/wrangler.toml`.
 - Google Cloud: cliente Web com redirect `…workers.dev/retorno`; app OAuth em Produção (em Teste a chave vence em 7 dias). Origens aceitas: `PERMITIDOS` no Worker.
 - Sem mudança nativa (Android segue no googleSignIn.native.ts).
+
+## F17 — Transcrição longa em pedaços de 10 min — 17/11/2026
+- Gravação com mais de 12 min é cortada em pedaços de ~10 min no trecho mais quieto (janela de 0,3 s em ±15 s da marca), virando WAV 16 kHz mono; cada pedaço vai ao Gemini com as 3 últimas falas do anterior. Num pedido só o Gemini parava por volta dos 10 min.
+- Site: `cortar()` em `src/services/gemini.ts` (Web Audio). Android: módulo `FeedTecAudio`.
+- **Mudança nativa (à mão):** `AudioPackage.kt` (novo: MediaExtractor + MediaCodec → PCM no cache → WAVs) + `add(AudioPackage())` no `MainApplication.kt`. Versão 0.2.1 (versionCode 12).
