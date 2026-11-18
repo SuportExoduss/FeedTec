@@ -41,6 +41,9 @@ export function aplicarTema(escuroLigado: boolean) {
   temaEscuro = escuroLigado;
   Object.assign(colors, escuroLigado ? escuro : claro);
   Object.assign(type, tipos());
+  // Web: barra de rolagem na cor do tema (herdada por todas as áreas roláveis).
+  if (typeof document !== 'undefined') Object.assign(document.documentElement.style,
+    { colorScheme: escuroLigado ? 'dark' : 'light', scrollbarColor: `${colors.textMuted}55 transparent`, scrollbarWidth: 'thin' });
 }
 
 // Escolha do tema no Perfil: Sistema / Claro / Escuro, guardada só no aparelho.
