@@ -6,12 +6,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Abas, Botao, BotaoMais, Campo, Dialogo, Erro, Marca, Tela, confirmar, mensagem, Vazio } from '../components/ui';
 import { CampoAntes, CampoData, CampoHora } from '../components/seletores';
 import { AvisoBateria } from '../components/AvisoBateria';
+import { EnviarColega } from '../components/EnviarColega';
 import { useEstado } from '../Estado';
 import {
   AVISO_REUNIAO, DIAS_SEMANA, adicionarReuniao, diaIso, editarReuniao, mostrarDia, proximaReuniao, realizadasOrdenadas,
   registrarReuniao, removerRealizada, removerReuniao, reuniaoDeHoje, reunioesOrdenadas, type CamposReuniao,
 } from '../lib/agenda';
-import { lembrarEmail, novoId } from '../lib/dados';
+import { novoId } from '../lib/dados';
 import { apagarConvite, enviarConvite, ouvirConvites, type Convite } from '../services/convites';
 import { colors, radius, space, type, cartao as card } from '../theme';
 import type { Pauta, Realizada, Reuniao } from '../types';
@@ -112,50 +113,9 @@ export default function Reunioes() {
       <ReuniaoDoDia reuniao={doDia} onFechar={() => setDoDia(null)} onEditar={r => { setDoDia(null); setEditar(r); }}
         onRegistrar={(id, tratadas, devolutiva) => alterar(d => registrarReuniao(d, id, tratadas, devolutiva))} />
       <VerRealizada realizada={vista} onFechar={() => setVista(null)} onRemover={id => alterar(d => removerRealizada(d, id))} />
-      <EnviarReuniao reuniao={enviar} recentes={dados.recentes ?? []} onFechar={() => setEnviar(null)}
-        onEnviado={email => alterar(d => lembrarEmail(d, email))} />
+      <EnviarColega visivel={!!enviar} titulo="Enviar reunião" texto={`${enviar?.titulo}: o colega recebe em Reuniões e, se aceitar, ela vira dele.`}
+        onFechar={() => setEnviar(null)} enviar={email => enviarConvite(email, enviar!)} />
     </Tela>
-  );
-}
-
-function EnviarReuniao({ reuniao, recentes, onFechar, onEnviado }: {
-  reuniao: Reuniao | null; recentes: string[]; onFechar: () => void; onEnviado: (email: string) => void;
-}) {
-  const [email, setEmail] = useState('');
-  const [erro, setErro] = useState<string | null>(null);
-  const [enviando, setEnviando] = useState(false);
-  useEffect(() => { setEmail(''); setErro(null); }, [reuniao]);
-
-  async function enviar() {
-    if (!reuniao) return;
-    setEnviando(true);
-    try {
-      await enviarConvite(email, reuniao);
-      onEnviado(email.trim().toLowerCase());
-      onFechar();
-    } catch (e) { setErro(mensagem(e)); } finally { setEnviando(false); }
-  }
-
-  return (
-    <Dialogo visivel={!!reuniao} titulo="Enviar reunião" onFechar={onFechar}>
-      <Text style={type.caption}>{reuniao?.titulo}: o colega recebe em Reuniões e, se aceitar, ela vira dele.</Text>
-      <Campo rotulo="E-mail do Google do colega" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
-      {recentes.length ? (
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space(2) }}>
-          {recentes.map(e => (
-            <Pressable key={e} onPress={() => setEmail(e)} accessibilityRole="button" accessibilityLabel={`Usar ${e}`}
-              style={{ paddingHorizontal: space(3), paddingVertical: space(1), borderRadius: 999, borderWidth: 1, borderColor: email === e ? colors.accent : colors.border }}>
-              <Text style={type.caption}>{e}</Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-      <Erro texto={erro} />
-      <View style={{ flexDirection: 'row', gap: space(3), justifyContent: 'flex-end' }}>
-        <Botao titulo="Cancelar" secundario onPress={onFechar} />
-        <Botao titulo="Enviar" onPress={enviar} carregando={enviando} disabled={!email.trim()} />
-      </View>
-    </Dialogo>
   );
 }
 

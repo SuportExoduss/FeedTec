@@ -4,6 +4,8 @@ import { FlatList, Platform, Pressable, Text, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Abas, Botao, BotaoMais, Campo, Dialogo, Erro, Selo, Tela, confirmar, mensagem, Vazio } from '../components/ui';
 import { AvisoBateria } from '../components/AvisoBateria';
+import { EnviarColega } from '../components/EnviarColega';
+import { apagarConviteTarefa, enviarTarefa, ouvirTarefas, type ConviteTarefa } from '../services/convites';
 import { useEstado } from '../Estado';
 import { CampoAntes, CampoData, CampoHora } from '../components/seletores';
 import { adicionarTarefa, alternarFeita, diaIso, editarTarefa, mostrarDia, moverTarefa, removerTarefa, situacao, tarefasOrdenadas,
@@ -24,8 +26,25 @@ const PRIO: Record<Prioridade, { titulo: string; cor: () => string }> = {
 };
 
 export default function Tarefas() {
-  const { dados, alterar } = useEstado();
+  const { dados, alterar, user } = useEstado();
   const [aberta, setAberta] = useState<Tarefa | 'nova' | null>(null);
+  const [enviar, setEnviar] = useState<Tarefa | null>(null);
+  const [convites, setConvites] = useState<ConviteTarefa[]>([]);
+  const [erroConvite, setErroConvite] = useState<string | null>(null);
+  useEffect(() => (user?.email ? ouvirTarefas(user.email, setConvites) : setConvites([])), [user?.email]);
+
+  async function aceitar(c: ConviteTarefa) {
+    try {
+      adicionarTarefa(dados, c.tarefa); // valida antes: erro aqui não pode estourar dentro do alterar
+      alterar(d => adicionarTarefa(d, c.tarefa));
+      await apagarConviteTarefa(c.id);
+      setErroConvite(null);
+    } catch (e) { setErroConvite(mensagem(e)); }
+  }
+  async function recusar(c: ConviteTarefa) {
+    if (!await confirmar('Recusar tarefa?', `${c.deNome}: ${c.tarefa.titulo}`, 'Recusar')) return;
+    try { await apagarConviteTarefa(c.id); } catch (e) { setErroConvite(mensagem(e)); }
+  }
   const [aba, setAba] = useState<Situacao>('pendente');
   const hoje = diaIso(new Date());
   const todas = tarefasOrdenadas(dados);
@@ -34,7 +53,18 @@ export default function Tarefas() {
   return (
     <Tela titulo="Tarefas">
       <AvisoBateria />
-      <View style={{ paddingHorizontal: space(4), paddingTop: space(2) }}>
+      <View style={{ paddingHorizontal: space(4), paddingTop: space(2), gap: space(2) }}>
+        {convites.map(c => (
+          <View key={c.id} style={{ gap: 2, padding: space(4), ...cartao() }}>
+            <Text style={type.body} numberOfLines={2}>{c.deNome} enviou: {c.tarefa.titulo}</Text>
+            <Text style={type.caption}>{c.tarefa.dia ? mostrarDia(c.tarefa.dia) : ''}{c.tarefa.hora ? ` · ${c.tarefa.hora}` : ''}{c.tarefa.descricao ? ` · ${c.tarefa.descricao}` : ''}</Text>
+            <View style={{ flexDirection: 'row', gap: space(3), justifyContent: 'flex-end', marginTop: space(2) }}>
+              <Botao titulo="Recusar" secundario onPress={() => recusar(c)} />
+              <Botao titulo="Aceitar" onPress={() => aceitar(c)} />
+            </View>
+          </View>
+        ))}
+        <Erro texto={erroConvite} />
         <Abas valor={aba} onChange={setAba}
           opcoes={SITUACOES.map(o => ({ valor: o.valor, titulo: `${o.titulo} (${todas.filter(t => situacao(t) === o.valor).length})` }))} />
       </View>
@@ -58,6 +88,9 @@ export default function Tarefas() {
                   <Text style={[type.body, { flex: 1, fontFamily: fonte.semi }, item.feita && { textDecorationLine: 'line-through' }]}
                     numberOfLines={1}>{item.titulo}</Text>
                   <Selo texto={p.titulo} cor={p.cor()} />
+                  <Pressable onPress={() => setEnviar(item)} hitSlop={10} accessibilityRole="button" accessibilityLabel={`Enviar ${item.titulo} a um colega`}>
+                    <Ionicons name="paper-plane-outline" size={20} color={colors.textMuted} />
+                  </Pressable>
                 </View>
                 <Text style={[type.caption, !item.feita && item.dia < hoje && { color: colors.danger }]}>
                   {mostrarDia(item.dia)}{item.hora ? ` · ${item.hora}` : ''}{item.descricao ? ` · ${item.descricao}` : ''}
@@ -69,6 +102,8 @@ export default function Tarefas() {
         }}
       />
       <BotaoMais rotulo="Nova tarefa" onPress={() => setAberta('nova')} />
+      <EnviarColega visivel={!!enviar} titulo="Enviar tarefa" texto={`${enviar?.titulo}: o colega recebe em Tarefas e, se aceitar, ela vira dele.`}
+        onFechar={() => setEnviar(null)} enviar={email => enviarTarefa(email, enviar!)} />
       <FormTarefa tarefa={aberta} onFechar={() => setAberta(null)}
         onSalvar={(c, s) => alterar(d => (aberta && aberta !== 'nova' ? moverTarefa(editarTarefa(d, aberta.id, c), aberta.id, s) : adicionarTarefa(d, c)))}
         onRemover={id => alterar(d => removerTarefa(d, id))} />
